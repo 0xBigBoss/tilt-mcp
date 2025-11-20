@@ -38,6 +38,7 @@
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.57.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
