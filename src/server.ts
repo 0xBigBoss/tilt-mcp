@@ -19,6 +19,14 @@ import {
   TiltLogsInput,
   TiltTriggerInput,
 } from './tools/schemas.js';
+import {
+  tiltDiscover,
+  tiltStatus,
+  tiltGetResources,
+  tiltDescribeResource,
+  tiltLogs,
+  tiltTrigger,
+} from './tools/index.js';
 
 /**
  * Handler for tools/list request
@@ -73,44 +81,32 @@ export async function handleCallTool(request: {
   switch (name) {
     case 'tilt_discover': {
       const validatedArgs = TiltDiscoverInput.parse(args);
-      throw new Error(
-        `Not implemented: tilt_discover with portRange ${validatedArgs.portRange}`
-      );
+      return await tiltDiscover.handler(validatedArgs, {});
     }
 
     case 'tilt_status': {
       const validatedArgs = TiltStatusInput.parse(args);
-      throw new Error(
-        `Not implemented: tilt_status for ${validatedArgs.tiltHost || 'localhost'}:${validatedArgs.tiltPort || 10350}`
-      );
+      return await tiltStatus.handler(validatedArgs, {});
     }
 
     case 'tilt_get_resources': {
       const validatedArgs = TiltGetResourcesInput.parse(args);
-      throw new Error(
-        `Not implemented: tilt_get_resources with filter=${validatedArgs.filter || 'none'}`
-      );
+      return await tiltGetResources.handler(validatedArgs, {});
     }
 
     case 'tilt_describe_resource': {
       const validatedArgs = TiltDescribeResourceInput.parse(args);
-      throw new Error(
-        `Not implemented: tilt_describe_resource for resource ${validatedArgs.resourceName}`
-      );
+      return await tiltDescribeResource.handler(validatedArgs, {});
     }
 
     case 'tilt_logs': {
       const validatedArgs = TiltLogsInput.parse(args);
-      throw new Error(
-        `Not implemented: tilt_logs for resource ${validatedArgs.resourceName}`
-      );
+      return await tiltLogs.handler(validatedArgs, {});
     }
 
     case 'tilt_trigger': {
       const validatedArgs = TiltTriggerInput.parse(args);
-      throw new Error(
-        `Not implemented: tilt_trigger for resource ${validatedArgs.resourceName}`
-      );
+      return await tiltTrigger.handler(validatedArgs, {});
     }
 
     default:

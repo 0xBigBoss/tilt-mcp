@@ -100,70 +100,103 @@ describe('Tool Registration - tools/list handler', () => {
 });
 
 describe('Tool Invocation - tools/call handler', () => {
-  it('tilt_discover tool throws not implemented error', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_discover',
-          arguments: {},
-        },
-      })
-    ).rejects.toThrow(/not implemented/i);
+  it('tilt_discover tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_discover',
+        arguments: {},
+      },
+    });
+
+    // Tool is implemented - it will either succeed or fail depending on Tilt availability
+    // Either way, it should not throw "not implemented"
+    await expect(result).resolves.toBeDefined();
   });
 
-  it('tilt_status tool throws not implemented error', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_status',
-          arguments: {},
-        },
-      })
-    ).rejects.toThrow(/not implemented/i);
+  it('tilt_status tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_status',
+        arguments: {},
+      },
+    });
+
+    // May succeed if Tilt is running, or throw error if not
+    try {
+      await result;
+      // Success - Tilt is running
+    } catch (error: any) {
+      // Expected to fail if Tilt not running
+      expect(error.message).not.toMatch(/not implemented/i);
+    }
   });
 
-  it('tilt_get_resources tool throws not implemented error', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_get_resources',
-          arguments: {},
-        },
-      })
-    ).rejects.toThrow(/not implemented/i);
+  it('tilt_get_resources tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_get_resources',
+        arguments: {},
+      },
+    });
+
+    try {
+      await result;
+      // Success - Tilt is running
+    } catch (error: any) {
+      // Expected to fail if Tilt not running
+      expect(error.message).not.toMatch(/not implemented/i);
+    }
   });
 
-  it('tilt_describe_resource tool throws not implemented error', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_describe_resource',
-          arguments: { resourceName: 'my-service' },
-        },
-      })
-    ).rejects.toThrow(/not implemented/i);
+  it('tilt_describe_resource tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_describe_resource',
+        arguments: { resourceName: 'my-service' },
+      },
+    });
+
+    try {
+      await result;
+      // Success - resource exists
+    } catch (error: any) {
+      // Expected to fail if resource not found
+      expect(error.message).not.toMatch(/not implemented/i);
+    }
   });
 
-  it('tilt_logs tool throws not implemented error', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_logs',
-          arguments: { resourceName: 'my-service' },
-        },
-      })
-    ).rejects.toThrow(/not implemented/i);
+  it('tilt_logs tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_logs',
+        arguments: { resourceName: 'my-service' },
+      },
+    });
+
+    try {
+      await result;
+      // Success - logs available
+    } catch (error: any) {
+      // Expected to fail if resource not found
+      expect(error.message).not.toMatch(/not implemented/i);
+    }
   });
 
-  it('tilt_trigger tool throws not implemented error', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_trigger',
-          arguments: { resourceName: 'my-service' },
+  it('tilt_trigger tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_trigger',
+        arguments: { resourceName: 'my-service' },
         },
-      })
-    ).rejects.toThrow(/not implemented/i);
+      });
+
+    try {
+      await result;
+      // Success - trigger worked
+    } catch (error: any) {
+      // Expected to fail if resource not found
+      expect(error.message).not.toMatch(/not implemented/i);
+    }
   });
 });
 
