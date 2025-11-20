@@ -1,0 +1,86 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "tilt.dev/v1alpha1",
+      "kind": "UIResource",
+      "metadata": {
+        "annotations": {
+          "tilt.dev/resource": "web-app"
+        },
+        "creationTimestamp": "2025-11-20T15:36:58Z",
+        "labels": {
+          "web": "web"
+        },
+        "name": "web-app",
+        "ownerReferences": [
+          {
+            "apiVersion": "tilt.dev/v1alpha1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Tiltfile",
+            "name": "(Tiltfile)",
+            "uid": "3434b180-af17-4f94-9d6b-c0195ff18e5d"
+          }
+        ],
+        "resourceVersion": "5289",
+        "uid": "cc71864f-6001-4d60-ba17-da993988b4d8"
+      },
+      "spec": {},
+      "status": {
+        "buildHistory": [
+          {
+            "finishTime": "2025-11-20T20:29:38.733768Z",
+            "spanID": "build:69",
+            "startTime": "2025-11-20T20:29:38.733622Z"
+          }
+        ],
+        "conditions": [
+          {
+            "lastTransitionTime": "2025-11-20T20:29:38.753450Z",
+            "status": "True",
+            "type": "UpToDate"
+          },
+          {
+            "lastTransitionTime": "2025-11-20T20:29:38.809665Z",
+            "status": "True",
+            "type": "Ready"
+          }
+        ],
+        "disableStatus": {
+          "disabledCount": 0,
+          "enabledCount": 1,
+          "sources": [
+            {
+              "configMap": {
+                "key": "isDisabled",
+                "name": "web-app-disable"
+              }
+            }
+          ],
+          "state": "Enabled"
+        },
+        "endpointLinks": [
+          {
+            "name": "Web App",
+            "url": "http://localhost:3001"
+          }
+        ],
+        "lastDeployTime": "2025-11-20T20:29:38.733768Z",
+        "localResourceInfo": {
+          "pid": 14167
+        },
+        "order": 21,
+        "pendingBuildSince": null,
+        "runtimeStatus": "ok",
+        "specs": [
+          {
+            "id": "local:web-app",
+            "type": "local"
+          }
+        ],
+        "updateStatus": "not_applicable"
+      }
+    }
+  ]
+}
