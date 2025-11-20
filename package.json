@@ -1,0 +1,46 @@
+{
+  "name": "tilt-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Tilt CLI integration",
+  "type": "module",
+  "main": "dist/server.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:integration": "vitest --run tests/integration",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix"
+  },
+  "keywords": [
+    "mcp",
+    "tilt",
+    "kubernetes",
+    "development"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.47",
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "ws": "^8.18.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.1"
+  }
+}
