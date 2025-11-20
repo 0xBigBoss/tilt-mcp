@@ -1,77 +1,56 @@
-/**
- * Integration tests for TiltConnection
- * 
- * Tests actual Tilt CLI interaction (requires Tilt installed)
- * Run with: npm run test:integration
- */
+import { describe, expect, it } from 'bun:test';
+import { createTiltCliFixture } from '../fixtures/tilt-cli-fixture.ts';
+import { TiltConnection } from '../../src/tilt/connection.ts';
 
-import { describe, test, expect } from 'vitest';
-import { TiltConnection } from '../../src/tilt/connection.js';
-import {
-  TiltNotInstalledError,
-  TiltNotRunningError,
-} from '../../src/tilt/errors.js';
+describe('TiltConnection integration (tilt fixture)', () => {
+  it('checks session against an isolated tilt fixture on a free port', async () => {
+    const fixture = await createTiltCliFixture();
 
-describe('TiltConnection Integration', () => {
-  test('detects Tilt not running on default port', async () => {
-    const connection = new TiltConnection();
-
-    // Should throw TiltNotRunningError unless Tilt is actually running
     try {
-      await connection.checkSession();
-      // If we get here, Tilt is running - that's ok too
-      expect(true).toBe(true);
-    } catch (error) {
-      // Expected error when Tilt is not running
-      if (error instanceof TiltNotRunningError) {
-        expect(error.code).toBe('TILT_NOT_RUNNING');
-        expect(error.message).toContain('No active Tilt session');
-      } else if (error instanceof TiltNotInstalledError) {
-        // Also acceptable - Tilt may not be installed in CI
-        expect(error.code).toBe('TILT_NOT_INSTALLED');
-      } else {
-        // Unexpected error
-        throw error;
-      }
+      const connection = new TiltConnection({
+        port: fixture.port,
+        host: fixture.host,
+        binaryPath: fixture.tiltBinary,
+        timeout: 500,
+      });
+
+      const result = await connection.checkSession();
+      expect(result).toBe(true);
+
+      const events = fixture.readEvents();
+      expect(events.spawns.length).toBe(1);
+    } finally {
+      fixture.cleanup();
     }
   });
 
-  test('returns correct connection info', () => {
-    const connection = new TiltConnection({
-      port: 10351,
-      host: '127.0.0.1',
-      timeout: 3000,
-    });
+  it('isolates multiple fixtures without port conflicts', async () => {
+    const first = await createTiltCliFixture();
+    const second = await createTiltCliFixture();
 
-    const info = connection.getConnectionInfo();
-    expect(info).toEqual({
-      port: 10351,
-      host: '127.0.0.1',
-      timeout: 3000,
-    });
-  });
-
-  test('cache invalidation works correctly', async () => {
-    const connection = new TiltConnection();
-
-    // Try to check session (will fail if Tilt not running)
     try {
-      await connection.checkSession();
-    } catch (error) {
-      // Expected - ignore
+      expect(first.port).not.toBe(second.port);
+
+      const connectionOne = new TiltConnection({
+        port: first.port,
+        host: first.host,
+        binaryPath: first.tiltBinary,
+      });
+
+      const connectionTwo = new TiltConnection({
+        port: second.port,
+        host: second.host,
+        binaryPath: second.tiltBinary,
+      });
+
+      await connectionOne.checkSession();
+      await connectionTwo.checkSession();
+
+      expect(first.readEvents().spawns.length).toBe(1);
+      expect(second.readEvents().spawns.length).toBe(1);
+    } finally {
+      first.cleanup();
+      second.cleanup();
     }
-
-    // Invalidate cache
-    connection.invalidateCache();
-
-    // Next check should query again
-    try {
-      await connection.checkSession();
-    } catch (error) {
-      // Expected - ignore
-    }
-
-    // Test passes if no crashes occurred
-    expect(true).toBe(true);
   });
 });

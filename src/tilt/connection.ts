@@ -19,22 +19,30 @@ export interface TiltConnectionConfig {
   port?: number;
   host?: string;
   timeout?: number;
+  binaryPath?: string;
+  env?: NodeJS.ProcessEnv;
+  cacheIntervalMs?: number;
 }
 
 export class TiltConnection {
   private readonly port: number;
   private readonly host: string;
   private readonly timeout: number;
+  private readonly binaryPath: string;
+  private readonly env?: NodeJS.ProcessEnv;
 
   // Cache state
   private sessionActive: boolean = false;
   private lastCheck: number = 0;
-  private readonly checkInterval: number = 10000; // 10 seconds
+  private readonly checkInterval: number;
 
   constructor(config: TiltConnectionConfig = {}) {
     this.port = config.port ?? 10350;
     this.host = config.host ?? 'localhost';
     this.timeout = config.timeout ?? 2000;
+    this.binaryPath = config.binaryPath ?? 'tilt';
+    this.env = config.env;
+    this.checkInterval = config.cacheIntervalMs ?? 10000; // default 10 seconds
   }
 
   /**
@@ -46,10 +54,8 @@ export class TiltConnection {
    * @throws TiltNotRunningError if no active session
    */
   async checkSession(forceRefresh: boolean = false): Promise<boolean> {
-    const now = Date.now();
-
     // Use cached result if not forced and within interval
-    if (!forceRefresh && now - this.lastCheck < this.checkInterval) {
+    if (!forceRefresh && Date.now() - this.lastCheck < this.checkInterval) {
       return this.sessionActive;
     }
 
@@ -58,12 +64,12 @@ export class TiltConnection {
 
       // Update cache on success
       this.sessionActive = true;
-      this.lastCheck = now;
+      this.lastCheck = Date.now();
       return true;
     } catch (error) {
       // Invalidate cache on any error
       this.sessionActive = false;
-      this.lastCheck = now;
+      this.lastCheck = Date.now();
 
       // Re-throw the error
       throw error;
@@ -82,11 +88,19 @@ export class TiltConnection {
   /**
    * Get connection configuration info
    */
-  getConnectionInfo(): { port: number; host: string; timeout: number } {
+  getConnectionInfo(): {
+    port: number;
+    host: string;
+    timeout: number;
+    binaryPath: string;
+    cacheIntervalMs: number;
+  } {
     return {
       port: this.port,
       host: this.host,
       timeout: this.timeout,
+      binaryPath: this.binaryPath,
+      cacheIntervalMs: this.checkInterval,
     };
   }
 
@@ -96,8 +110,9 @@ export class TiltConnection {
    */
   private async execTilt(args: readonly string[]): Promise<string> {
     return new Promise((resolve, reject) => {
-      const proc = spawn('tilt', args as string[], {
+      const proc = spawn(this.binaryPath, args as string[], {
         stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, ...this.env },
         // NO shell: true - prevents command injection
       });
 

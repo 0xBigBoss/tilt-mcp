@@ -1,276 +1,170 @@
-/**
- * Tests for TiltConnection class
- *
- * Validates session caching, invalidation, and error handling
- */
+/* eslint-disable @typescript-eslint/await-thenable */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any */
-
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { EventEmitter } from 'events';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { createTiltCliFixture, TiltCliFixture } from '../fixtures/tilt-cli-fixture.ts';
+import { TiltConnection } from '../../src/tilt/connection.ts';
 import {
+  TiltCommandTimeoutError,
   TiltNotInstalledError,
   TiltNotRunningError,
-  TiltCommandTimeoutError,
-} from '../../src/tilt/errors.js';
-
-// Mock child_process at the top level - BEFORE any imports that use it
-vi.mock('child_process', () => {
-  return {
-    spawn: vi.fn(),
-  };
-});
-
-// Now import the module under test
-const { TiltConnection } = await import('../../src/tilt/connection.js');
-const { spawn } = await import('child_process');
-
-/**
- * Create a mock process that succeeds
- */
-function createMockProcess(stdout: string = '{"kind": "Session"}', exitCode: number = 0) {
-  const proc = new EventEmitter() as any;
-  proc.stdout = new EventEmitter();
-  proc.stderr = new EventEmitter();
-  proc.kill = vi.fn();
-
-  // Simulate async behavior
-  process.nextTick(() => {
-    if (stdout) {
-      proc.stdout.emit('data', Buffer.from(stdout));
-    }
-    proc.emit('close', exitCode);
-  });
-
-  return proc;
-}
-
-/**
- * Create a mock process that errors immediately
- */
-function createErrorProcess(error: NodeJS.ErrnoException) {
-  const proc = new EventEmitter() as any;
-  proc.stdout = new EventEmitter();
-  proc.stderr = new EventEmitter();
-  proc.kill = vi.fn();
-
-  process.nextTick(() => {
-    proc.emit('error', error);
-  });
-
-  return proc;
-}
-
-/**
- * Create a mock process with stderr output
- */
-function createStderrProcess(stderr: string, exitCode: number = 1) {
-  const proc = new EventEmitter() as any;
-  proc.stdout = new EventEmitter();
-  proc.stderr = new EventEmitter();
-  proc.kill = vi.fn();
-
-  process.nextTick(() => {
-    proc.stderr.emit('data', Buffer.from(stderr));
-    proc.emit('close', exitCode);
-  });
-
-  return proc;
-}
+} from '../../src/tilt/errors.ts';
 
 describe('TiltConnection', () => {
-  let connection: InstanceType<typeof TiltConnection>;
+  let fixture: TiltCliFixture | undefined;
 
-  beforeEach(() => {
-    connection = new TiltConnection({ port: 10350, host: 'localhost', timeout: 2000 });
-    vi.clearAllMocks();
+  const buildConnection = (overrides: Partial<ConstructorParameters<typeof TiltConnection>[0]> = {}) => {
+    if (!fixture) {
+      throw new Error('Fixture not initialized');
+    }
+
+    return new TiltConnection({
+      port: fixture.port,
+      host: fixture.host,
+      timeout: 500,
+      binaryPath: fixture.tiltBinary,
+      cacheIntervalMs: 25,
+      ...overrides,
+    });
+  };
+
+  beforeEach(async () => {
+    fixture = await createTiltCliFixture();
   });
 
-  describe('Session Detection', () => {
-    test('detects active Tilt session', async () => {
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
+  afterEach(() => {
+    fixture?.cleanup();
+    fixture = undefined;
+  });
+
+  describe('Session detection', () => {
+    it('detects active Tilt session', async () => {
+      const connection = buildConnection();
 
       const result = await connection.checkSession();
-      
+
       expect(result).toBe(true);
-      expect(spawn).toHaveBeenCalledWith(
-        'tilt',
-        ['get', 'session', '--port', '10350', '--host', 'localhost'],
-        expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] })
-      );
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(1);
     });
 
-    test('throws TiltNotInstalledError when tilt command not found', async () => {
-      const error: NodeJS.ErrnoException = new Error('spawn tilt ENOENT');
-      error.code = 'ENOENT';
-      vi.mocked(spawn).mockReturnValue(createErrorProcess(error));
+    it('throws TiltNotInstalledError when tilt binary is missing', async () => {
+      const connection = new TiltConnection({
+        port: fixture!.port,
+        host: fixture!.host,
+        timeout: 100,
+        binaryPath: '/path/that/does/not/exist/tilt',
+      });
 
       await expect(connection.checkSession()).rejects.toThrow(TiltNotInstalledError);
     });
 
-    test('throws TiltNotRunningError when connection refused', async () => {
-      vi.mocked(spawn).mockReturnValue(
-        createStderrProcess('dial tcp 127.0.0.1:10350: connection refused')
-      );
+    it('throws TiltNotRunningError when connection is refused', async () => {
+      fixture!.setBehavior('refused');
+      const connection = buildConnection();
 
       await expect(connection.checkSession()).rejects.toThrow(TiltNotRunningError);
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(1);
     });
   });
 
-  describe('Cache Behavior', () => {
-    test('uses cached result within 10-second interval', async () => {
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
+  describe('Cache behavior', () => {
+    it('uses cached result within interval', async () => {
+      const connection = buildConnection({ cacheIntervalMs: 50 });
 
-      // First call
       await connection.checkSession();
-      expect(spawn).toHaveBeenCalledTimes(1);
+      await connection.checkSession();
 
-      // Second call immediately (should use cache)
-      await connection.checkSession();
-      
-      // Still only called once
-      expect(spawn).toHaveBeenCalledTimes(1);
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(1);
     });
 
-    test('refreshes after 10-second cache expiration', async () => {
-      vi.useFakeTimers();
+    it('refreshes after cache expiration', async () => {
+      const connection = buildConnection({ cacheIntervalMs: 30 });
 
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
-
-      // First call
       await connection.checkSession();
-      expect(spawn).toHaveBeenCalledTimes(1);
-
-      // Advance time by 11 seconds (past cache interval)
-      vi.advanceTimersByTime(11000);
-
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
-
-      // Second call after cache expiration
+      await new Promise(resolve => setTimeout(resolve, 40));
       await connection.checkSession();
 
-      // Should have called spawn twice
-      expect(spawn).toHaveBeenCalledTimes(2);
-
-      vi.useRealTimers();
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(2);
     });
 
-    test('forceRefresh bypasses cache', async () => {
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
+    it('forceRefresh bypasses cache', async () => {
+      const connection = buildConnection();
 
-      // First call
       await connection.checkSession();
-      expect(spawn).toHaveBeenCalledTimes(1);
-
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
-
-      // Force refresh
       await connection.checkSession(true);
 
-      // Should have called spawn twice
-      expect(spawn).toHaveBeenCalledTimes(2);
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(2);
     });
   });
 
-  describe('Explicit Cache Invalidation', () => {
-    test('invalidateCache forces next check to query', async () => {
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
+  describe('Explicit cache invalidation', () => {
+    it('invalidateCache forces next check to query', async () => {
+      const connection = buildConnection();
 
-      // First call
       await connection.checkSession();
-      expect(spawn).toHaveBeenCalledTimes(1);
-
-      // Invalidate cache
       connection.invalidateCache();
-
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
-
-      // Next call should query again (not use cache)
       await connection.checkSession();
 
-      expect(spawn).toHaveBeenCalledTimes(2);
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(2);
     });
 
-    test('invalidates cache on error', async () => {
-      vi.useFakeTimers();
-
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
-
-      // First call succeeds
+    it('invalidates cache on error and retries on next call', async () => {
+      const connection = buildConnection();
       await connection.checkSession();
 
-      vi.mocked(spawn).mockReturnValue(
-        createStderrProcess('connection refused')
-      );
-
-      // Second call fails (force refresh to bypass cache)
+      fixture!.setBehavior('refused');
       await expect(connection.checkSession(true)).rejects.toThrow(TiltNotRunningError);
 
-      // Move time forward to ensure we're past any cache window
-      vi.advanceTimersByTime(100);
-
-      vi.mocked(spawn).mockReturnValue(createMockProcess());
-
-      // Third call should query again because forceRefresh bypasses cache
+      fixture!.setBehavior('healthy');
       await connection.checkSession(true);
 
-      // Should have spawned 3 times total (initial, error, refresh)
-      expect(spawn).toHaveBeenCalledTimes(3);
-
-      vi.useRealTimers();
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(3);
     });
   });
 
-  describe('Connection Info', () => {
-    test('returns connection configuration', () => {
+  describe('Connection info', () => {
+    it('returns connection configuration including binary and cache interval', () => {
+      const connection = buildConnection({ cacheIntervalMs: 45, timeout: 500 });
+
       const info = connection.getConnectionInfo();
-      
+
       expect(info).toEqual({
-        port: 10350,
-        host: 'localhost',
-        timeout: 2000,
+        port: fixture!.port,
+        host: fixture!.host,
+        timeout: 500,
+        binaryPath: fixture!.tiltBinary,
+        cacheIntervalMs: 45,
       });
     });
 
-    test('uses default values when not specified', () => {
-      const defaultConnection = new TiltConnection();
-      const info = defaultConnection.getConnectionInfo();
-      
+    it('uses default values when not specified', () => {
+      const connection = new TiltConnection();
+      const info = connection.getConnectionInfo();
+
       expect(info.port).toBe(10350);
       expect(info.host).toBe('localhost');
       expect(info.timeout).toBe(2000);
+      expect(info.binaryPath).toBe('tilt');
+      expect(info.cacheIntervalMs).toBe(10000);
     });
   });
 
-  describe('Timeout Handling', () => {
-    test('kills process on timeout', async () => {
-      vi.useFakeTimers();
+  describe('Timeout handling', () => {
+    it('kills process on timeout and throws TiltCommandTimeoutError', async () => {
+      fixture!.setBehavior('hang', { hangMs: 20000 });
+      const connection = buildConnection({ timeout: 500 });
 
-      // Create a process that never completes
-      const proc = new EventEmitter() as any;
-      proc.stdout = new EventEmitter();
-      proc.stderr = new EventEmitter();
-      proc.kill = vi.fn();
+      await expect(connection.checkSession()).rejects.toThrow(TiltCommandTimeoutError);
 
-      vi.mocked(spawn).mockReturnValue(proc);
-
-      const promise = connection.checkSession();
-
-      // Advance time past timeout (this will trigger the kill)
-      await vi.advanceTimersByTimeAsync(2100);
-
-      // Now emit close event to complete the promise
-      proc.emit('close', null);
-
-      // Wait a tick for the promise to settle
-      await new Promise(resolve => process.nextTick(resolve));
-
-      // Process should be killed
-      expect(proc.kill).toHaveBeenCalledWith('SIGTERM');
-
-      await expect(promise).rejects.toThrow(TiltCommandTimeoutError);
-
-      vi.useRealTimers();
+      const events = fixture!.readEvents();
+      expect(events.spawns.length).toBe(1);
+      expect(events.signals.some(event => event.signal === 'SIGTERM')).toBe(true);
     });
   });
 });

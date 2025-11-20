@@ -21,6 +21,7 @@ This project is currently in active development. The initial setup is complete a
 - Node.js 20.x or later
 - Tilt CLI (v0.35.0 or later)
 - TypeScript 5.3+
+- Bun 1.3+ (used for the test runner)
 
 ## Installation
 
@@ -45,8 +46,8 @@ npm run dev
 ### Testing
 
 ```bash
-# Run all tests
-npm test
+# Run all tests (uses Bun)
+npm test          # or: bun test
 
 # Run tests in watch mode
 npm run test:watch

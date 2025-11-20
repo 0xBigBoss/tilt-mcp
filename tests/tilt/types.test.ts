@@ -2,11 +2,10 @@
  * Type tests for Tilt resources
  * Tests verify TypeScript types match real Tilt API output
  */
-import { describe, test, expect } from 'vitest';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { describe, expect, it } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,11 +18,11 @@ import type {
   RuntimeStatus,
   TiltSession,
   LogLine,
-} from '../../src/tilt/types.js';
+} from '../../src/tilt/types.ts';
 
 describe('Tilt Types', () => {
   describe('UIResourceList', () => {
-    test('parses real Tilt uiresources output', () => {
+    it('parses real Tilt uiresources output', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -38,7 +37,7 @@ describe('Tilt Types', () => {
   });
 
   describe('UIResource', () => {
-    test('has correct structure for real resource', () => {
+    it('has correct structure for real resource', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -56,7 +55,7 @@ describe('Tilt Types', () => {
   });
 
   describe('ResourceMetadata', () => {
-    test('contains K8s-style metadata fields', () => {
+    it('contains K8s-style metadata fields', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -84,7 +83,7 @@ describe('Tilt Types', () => {
   });
 
   describe('ResourceStatus', () => {
-    test('contains status information', () => {
+    it('contains status information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -112,7 +111,7 @@ describe('Tilt Types', () => {
   });
 
   describe('BuildRecord', () => {
-    test('contains build history information', () => {
+    it('contains build history information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -140,7 +139,7 @@ describe('Tilt Types', () => {
   });
 
   describe('DisableStatus', () => {
-    test('contains enable/disable state', () => {
+    it('contains enable/disable state', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -167,7 +166,7 @@ describe('Tilt Types', () => {
   });
 
   describe('EndpointLink', () => {
-    test('contains endpoint information', () => {
+    it('contains endpoint information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -193,7 +192,7 @@ describe('Tilt Types', () => {
   });
 
   describe('ResourceSpec', () => {
-    test('contains spec type information', () => {
+    it('contains spec type information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -215,7 +214,7 @@ describe('Tilt Types', () => {
   });
 
   describe('ResourceCondition', () => {
-    test('contains K8s-style condition', () => {
+    it('contains K8s-style condition', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -246,7 +245,7 @@ describe('Tilt Types', () => {
   });
 
   describe('Type Safety', () => {
-    test('types prevent invalid runtime status values', () => {
+    it('types prevent invalid runtime status values', () => {
       // This test verifies compile-time type checking
       const validStatuses: RuntimeStatus[] = [
         'ok',
@@ -263,7 +262,7 @@ describe('Tilt Types', () => {
       });
     });
 
-    test('types allow proper UIResource construction', () => {
+    it('types allow proper UIResource construction', () => {
       const resource: UIResource = {
         apiVersion: 'tilt.dev/v1alpha1',
         kind: 'UIResource',
@@ -283,7 +282,7 @@ describe('Tilt Types', () => {
       expect(resource.status.runtimeStatus).toBe('ok');
     });
 
-    test('types work with real Tilt CLI output', () => {
+    it('types work with real Tilt CLI output', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -316,7 +315,7 @@ describe('Tilt Types', () => {
       }
     });
 
-    test('UIResourceList can be filtered by status', () => {
+    it('UIResourceList can be filtered by status', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
         'utf-8'
@@ -335,7 +334,7 @@ describe('Tilt Types', () => {
       expect(resourcesWithEndpoints.length).toBeGreaterThanOrEqual(0);
     });
 
-    test('types support TiltSession parsing', () => {
+    it('types support TiltSession parsing', () => {
       // Verify TiltSession type is properly structured
       const session: TiltSession = {
         apiVersion: 'tilt.dev/v1alpha1',
@@ -360,7 +359,7 @@ describe('Tilt Types', () => {
       expect(session.status.done).toBe(false);
     });
 
-    test('types support LogLine structure', () => {
+    it('types support LogLine structure', () => {
       const logLine: LogLine = {
         text: 'Test log message',
         level: 'info',

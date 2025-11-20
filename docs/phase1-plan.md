@@ -30,7 +30,7 @@ Phase 1 delivers a functional MCP server with 6 core tools, WebSocket streaming,
 #### Day 1: Project Setup
 - [ ] Initialize npm project
 - [ ] Configure TypeScript (`tsconfig.json`)
-- [ ] Set up testing (Vitest)
+- [ ] Set up testing (Bun test)
 - [ ] Configure linting (ESLint + TypeScript ESLint)
 - [ ] Create project structure (src/, tests/, fixtures/)
 - [ ] Set up package.json scripts
@@ -153,7 +153,7 @@ npm install -D @types/node@^20.0.0 \
                @types/ws@^8.5.0 \
                typescript@^5.3.0 \
                tsx@^4.7.0 \
-               vitest@^1.2.0 \
+               bun-types@^1.3.2 \
                eslint@^8.56.0 \
                @typescript-eslint/eslint-plugin@^6.19.0 \
                @typescript-eslint/parser@^6.19.0
@@ -167,9 +167,9 @@ npm install -D @types/node@^20.0.0 \
     "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "test:integration": "vitest --run tests/integration",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:integration": "bun test tests/integration",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix"
@@ -464,11 +464,9 @@ Key features:
 **Unit test example** (`tests/tilt/cli-client.test.ts`):
 
 ```typescript
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, mock } from 'bun:test';
 import { TiltCliClient } from '../../src/tilt/cli-client.js';
-import * as child_process from 'child_process';
-
-vi.mock('child_process');
+import * as child_process from 'node:child_process';
 
 describe('TiltCliClient', () => {
   let client: TiltCliClient;
@@ -477,11 +475,12 @@ describe('TiltCliClient', () => {
     client = new TiltCliClient(10350, 'localhost');
   });
 
-  test('uses argument arrays (no shell)', async () => {
-    const mockSpawn = vi.spyOn(child_process, 'spawn').mockReturnValue({
-      stdout: { on: vi.fn((event, cb) => event === 'data' && cb('{}')) },
-      stderr: { on: vi.fn() },
-      on: vi.fn((event, cb) => event === 'close' && cb(0)),
+  it('uses argument arrays (no shell)', async () => {
+    const mockSpawn = mock.spyOn(child_process, 'spawn').mockReturnValue({
+      stdout: { on: (event: string, cb: (chunk: any) => void) => event === 'data' && cb(Buffer.from('{}')) },
+      stderr: { on: () => undefined },
+      on: (event: string, cb: (code: number) => void) => event === 'close' && cb(0),
+      kill: () => true,
     } as any);
 
     await client.getResources();
@@ -493,17 +492,15 @@ describe('TiltCliClient', () => {
     );
   });
 
-  test('throws on timeout', async () => {
-    vi.spyOn(child_process, 'spawn').mockReturnValue({
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      on: vi.fn(), // Never calls close
-      kill: vi.fn(),
+  it('throws on timeout', async () => {
+    mock.spyOn(child_process, 'spawn').mockReturnValue({
+      stdout: { on: () => undefined },
+      stderr: { on: () => undefined },
+      on: () => undefined, // Never calls close
+      kill: mock.fn(),
     } as any);
 
-    await expect(
-      client.getResources()
-    ).rejects.toThrow('timed out');
+    await expect(client.getResources()).rejects.toThrow('timed out');
   });
 });
 ```

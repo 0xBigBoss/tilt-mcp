@@ -563,7 +563,7 @@ tilt-mcp/
     "@types/ws": "^8.5.0",
     "typescript": "^5.3.0",
     "tsx": "^4.7.0",
-    "vitest": "^1.2.0",
+    "bun-types": "^1.3.2",
     "eslint": "^8.56.0",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
@@ -582,15 +582,15 @@ tilt-mcp/
 **Mock CLI Execution**:
 ```typescript
 // tests/tilt/cli-client.test.ts
-import { vi, describe, test, expect } from 'vitest';
+import { describe, it, expect, mock } from 'bun:test';
 import { TiltCliClient } from '../../src/tilt/cli-client';
 
-vi.mock('child_process', () => ({
-  spawn: vi.fn(),
+mock.module('child_process', () => ({
+  spawn: mock.fn(),
 }));
 
 describe('TiltCliClient', () => {
-  test('getResources returns parsed JSON', async () => {
+  it('getResources returns parsed JSON', async () => {
     const mockOutput = JSON.stringify(require('../fixtures/get-uiresources.json'));
 
     // Mock spawn to return fixture
@@ -601,7 +601,7 @@ describe('TiltCliClient', () => {
           if (event === 'data') cb(mockOutput);
         },
       },
-      stderr: { on: vi.fn() },
+      stderr: { on: mock.fn() },
       on: (event: string, cb: Function) => {
         if (event === 'close') cb(0);
       },
@@ -621,7 +621,7 @@ describe('TiltCliClient', () => {
 **Test Against Real Tilt**:
 ```typescript
 // tests/integration/tilt-commands.test.ts
-import { describe, test, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'bun:test';
 import { TiltConnection } from '../../src/tilt/connection';
 import { TiltCliClient } from '../../src/tilt/cli-client';
 
@@ -640,13 +640,13 @@ describe('Tilt Integration Tests', () => {
     client = new TiltCliClient(10350, 'localhost');
   });
 
-  test('can list resources', async () => {
+  it('can list resources', async () => {
     const resources = await client.getResources();
     expect(resources).toBeDefined();
     expect(Array.isArray(resources)).toBe(true);
   });
 
-  test('can get logs', async () => {
+  it('can get logs', async () => {
     const resources = await client.getResources();
     if (resources.length > 0) {
       const logs = await client.getLogs(resources[0].metadata.name, { tailLines: 10 });

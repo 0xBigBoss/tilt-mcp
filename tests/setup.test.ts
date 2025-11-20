@@ -2,18 +2,17 @@
  * Smoke test to verify project setup is correct
  */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-import { describe, test, expect } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { describe, expect, it } from 'bun:test';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
 describe('Project Setup', () => {
-  test('package.json exists and has correct configuration', () => {
+  it('package.json exists and has correct configuration', () => {
     const pkgPath = join(projectRoot, 'package.json');
     expect(existsSync(pkgPath)).toBe(true);
 
@@ -27,9 +26,9 @@ describe('Project Setup', () => {
     expect(pkg.scripts.build).toBe('tsc');
     expect(pkg.scripts.dev).toBe('tsx watch src/server.ts');
     expect(pkg.scripts.start).toBe('node dist/server.js');
-    expect(pkg.scripts.test).toBe('vitest');
-    expect(pkg.scripts['test:watch']).toBe('vitest --watch');
-    expect(pkg.scripts['test:integration']).toBe('vitest --run tests/integration');
+    expect(pkg.scripts.test).toBe('bun test');
+    expect(pkg.scripts['test:watch']).toBe('bun test --watch');
+    expect(pkg.scripts['test:integration']).toBe('bun test tests/integration');
     expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
     expect(pkg.scripts.lint).toBe('eslint src tests');
     expect(pkg.scripts['lint:fix']).toBe('eslint src tests --fix');
@@ -47,13 +46,13 @@ describe('Project Setup', () => {
     expect(pkg.devDependencies['@types/ws']).toBeDefined();
     expect(pkg.devDependencies['typescript']).toBeDefined();
     expect(pkg.devDependencies['tsx']).toBeDefined();
-    expect(pkg.devDependencies['vitest']).toBeDefined();
+    expect(pkg.devDependencies['bun-types']).toBeDefined();
     expect(pkg.devDependencies['eslint']).toBeDefined();
     expect(pkg.devDependencies['@typescript-eslint/eslint-plugin']).toBeDefined();
     expect(pkg.devDependencies['@typescript-eslint/parser']).toBeDefined();
   });
 
-  test('tsconfig.json exists with strict configuration', () => {
+  it('tsconfig.json exists with strict configuration', () => {
     const tsconfigPath = join(projectRoot, 'tsconfig.json');
     expect(existsSync(tsconfigPath)).toBe(true);
     
@@ -67,7 +66,7 @@ describe('Project Setup', () => {
     expect(tsconfig.compilerOptions.rootDir).toBe('./src');
   });
 
-  test('eslint configuration exists', () => {
+  it('eslint configuration exists', () => {
     const eslintPath = join(projectRoot, '.eslintrc.json');
     expect(existsSync(eslintPath)).toBe(true);
     
@@ -76,7 +75,7 @@ describe('Project Setup', () => {
     expect(eslintConfig.plugins).toContain('@typescript-eslint');
   });
 
-  test('gitignore exists with required entries', () => {
+  it('gitignore exists with required entries', () => {
     const gitignorePath = join(projectRoot, '.gitignore');
     expect(existsSync(gitignorePath)).toBe(true);
     
@@ -86,7 +85,7 @@ describe('Project Setup', () => {
     expect(gitignore).toContain('coverage');
   });
 
-  test('required directories exist', () => {
+  it('required directories exist', () => {
     expect(existsSync(join(projectRoot, 'src', 'tools'))).toBe(true);
     expect(existsSync(join(projectRoot, 'src', 'tilt'))).toBe(true);
     expect(existsSync(join(projectRoot, 'tests', 'tools'))).toBe(true);
