@@ -16,25 +16,37 @@ interface DiscoveredInstance {
   version?: string;
 }
 
+interface DiscoveryResult {
+  instances: DiscoveredInstance[];
+  warning?: string;
+  message?: string;
+}
+
 export const tiltDiscover = tool(
   'tilt_discover',
-  'Discover running Tilt instances by scanning common ports',
+  'Discover running Tilt instances by scanning common ports. Connection host/port should be set in MCP configuration (.mcp.json or environment). When multiple instances are found, specify an explicit port in configuration to avoid connecting to the wrong instance.',
   TiltDiscoverInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
 
     // Priority: args > extra > env > defaults
-    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
+    const host =
+      (args as { tiltHost?: string }).tiltHost ??
+      extra.tiltHost ??
+      getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // For portRange, if not provided in args, use default range
-    // but respect args.tiltPort or extra.tiltPort for the starting port
+    // but respect extra.tiltPort for the starting port
     let portRange: [number, number];
     if (args.portRange) {
       portRange = args.portRange;
     } else {
-      // Determine starting port with priority: args.tiltPort > extra.tiltPort > env > default
-      const startPort = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
+      // Determine starting port with priority: args override for backward compatibility, else extra > env > default
+      const startPort =
+        (args as { tiltPort?: number }).tiltPort ??
+        extra.tiltPort ??
+        getDefaultTiltPort();
       const endPort = Math.min(startPort + 4, 65535);
       portRange = [startPort, endPort];
     }
@@ -65,11 +77,23 @@ export const tiltDiscover = tool(
       } catch (_error) {}
     }
 
+    // Always return consistent DiscoveryResult format
+    const responseData: DiscoveryResult = {
+      instances: discovered,
+    };
+
+    // Add warning and message only when multiple instances are found
+    if (discovered.length > 1) {
+      responseData.warning = 'Multiple active Tilt instances detected';
+      responseData.message =
+        'Multiple Tilt instances are running. To avoid connecting to the wrong instance, specify an explicit port using the tiltPort argument or set the TILT_PORT environment variable.';
+    }
+
     return {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify(discovered, null, 2),
+          text: JSON.stringify(responseData, null, 2),
         },
       ],
     };

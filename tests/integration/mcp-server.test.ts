@@ -131,9 +131,10 @@ describe('MCP Server Integration', () => {
       expect(textContent.type).toBe('text');
       expect(typeof (textContent as { text: string }).text).toBe('string');
 
-      // Should be valid JSON
+      // Should be valid JSON with consistent DiscoveryResult shape
       const parsed = JSON.parse((textContent as { text: string }).text);
-      expect(Array.isArray(parsed)).toBe(true);
+      expect(parsed.instances).toBeDefined();
+      expect(Array.isArray(parsed.instances)).toBe(true);
     });
 
     it('returns empty array when no instances found', async () => {
@@ -146,7 +147,9 @@ describe('MCP Server Integration', () => {
 
       const textContent = result.content[0] as { text: string };
       const parsed = JSON.parse(textContent.text);
-      expect(parsed).toEqual([]);
+      expect(parsed.instances).toEqual([]);
+      expect(parsed.warning).toBeUndefined();
+      expect(parsed.message).toBeUndefined();
     });
   });
 });
