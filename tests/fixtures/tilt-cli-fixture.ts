@@ -126,7 +126,7 @@ function main() {
         process.stdout.write(state.sessionStdout ?? '{"kind":"UIResourceList","items":[]}');
         process.exit(0);
       }
-      if (args[0] === 'describe') {
+      if (args[0] === 'get' && args[1]?.startsWith('uiresource/')) {
         process.stdout.write(state.sessionStdout ?? '{"kind":"UIResource","metadata":{"name":"test"}}');
         process.exit(0);
       }

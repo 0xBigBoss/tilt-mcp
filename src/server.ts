@@ -12,20 +12,29 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
+  tiltArgs,
   tiltDescribeResource,
+  tiltDisable,
   tiltDiscover,
+  tiltEnable,
   tiltGetResources,
   tiltLogs,
   tiltStatus,
   tiltTrigger,
+  tiltWait,
 } from './tools/index.js';
 import {
+  TiltArgsInput,
   TiltDescribeResourceInput,
+  TiltDisableInput,
   TiltDiscoverInput,
+  TiltEnableInput,
   TiltGetResourcesInput,
   TiltLogsInput,
   TiltStatusInput,
   TiltTriggerInput,
+  TiltWaitInput,
+  validateTiltArgsInput,
 } from './tools/schemas.js';
 
 /**
@@ -64,6 +73,26 @@ export async function handleListTools() {
         name: 'tilt_trigger',
         description: 'Manually trigger a resource update',
         inputSchema: zodToJsonSchema(TiltTriggerInput),
+      },
+      {
+        name: 'tilt_enable',
+        description: 'Enable a disabled resource',
+        inputSchema: zodToJsonSchema(TiltEnableInput),
+      },
+      {
+        name: 'tilt_disable',
+        description: 'Disable a resource',
+        inputSchema: zodToJsonSchema(TiltDisableInput),
+      },
+      {
+        name: 'tilt_wait',
+        description: 'Wait for resources to reach ready state',
+        inputSchema: zodToJsonSchema(TiltWaitInput),
+      },
+      {
+        name: 'tilt_args',
+        description: 'Set or clear Tiltfile arguments',
+        inputSchema: zodToJsonSchema(TiltArgsInput),
       },
     ],
   };
@@ -107,6 +136,27 @@ export async function handleCallTool(request: {
     case 'tilt_trigger': {
       const validatedArgs = TiltTriggerInput.parse(args);
       return await tiltTrigger.handler(validatedArgs, {});
+    }
+
+    case 'tilt_enable': {
+      const validatedArgs = TiltEnableInput.parse(args);
+      return await tiltEnable.handler(validatedArgs, {});
+    }
+
+    case 'tilt_disable': {
+      const validatedArgs = TiltDisableInput.parse(args);
+      return await tiltDisable.handler(validatedArgs, {});
+    }
+
+    case 'tilt_wait': {
+      const validatedArgs = TiltWaitInput.parse(args);
+      return await tiltWait.handler(validatedArgs, {});
+    }
+
+    case 'tilt_args': {
+      const validatedArgs = TiltArgsInput.parse(args);
+      validateTiltArgsInput(validatedArgs); // Additional runtime validation
+      return await tiltArgs.handler(validatedArgs, {});
     }
 
     default:

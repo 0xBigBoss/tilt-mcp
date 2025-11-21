@@ -6,7 +6,9 @@
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
 import { TiltConnection } from '../tilt/connection.js';
+import { stripAnsiCodes } from '../tilt/transformers.js';
 import { TiltLogsInput, type TiltToolExtra } from './schemas.js';
 
 export const tiltLogs = tool(
@@ -15,8 +17,8 @@ export const tiltLogs = tool(
   TiltLogsInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
-    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
+    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
@@ -36,13 +38,15 @@ export const tiltLogs = tool(
     });
 
     const logOptions = {
-      follow: args.follow,
-      tailLines: args.tailLines,
+      // Note: follow mode disabled - MCP tools must return a response
+      follow: false,
+      tailLines: args.tailLines ?? 100,
       level: args.level,
       source: args.source,
     };
 
-    const logs = await client.getLogs(args.resourceName, logOptions);
+    const rawLogs = await client.getLogs(args.resourceName, logOptions);
+    const logs = stripAnsiCodes(rawLogs);
 
     const result = {
       resourceName: args.resourceName,

@@ -23,7 +23,14 @@ describe('TiltWebSocketClient', () => {
   let fixture: WsServerFixture;
   let client: TiltWebSocketClient;
 
+  // Store original env values
+  const originalPort = process.env.TILT_PORT;
+  const originalHost = process.env.TILT_HOST;
+
   beforeEach(async () => {
+    // Clear env vars before each test for predictable defaults
+    delete process.env.TILT_PORT;
+    delete process.env.TILT_HOST;
     fixture = await createWsServerFixture();
   });
 
@@ -32,6 +39,18 @@ describe('TiltWebSocketClient', () => {
       client.disconnect();
     }
     await fixture.close();
+
+    // Restore original env vars
+    if (originalPort !== undefined) {
+      process.env.TILT_PORT = originalPort;
+    } else {
+      delete process.env.TILT_PORT;
+    }
+    if (originalHost !== undefined) {
+      process.env.TILT_HOST = originalHost;
+    } else {
+      delete process.env.TILT_HOST;
+    }
   });
 
   describe('Connection Lifecycle', () => {

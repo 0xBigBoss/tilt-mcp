@@ -5,27 +5,27 @@ MCP (Model Context Protocol) server for Tilt CLI integration, enabling AI assist
 ## Features
 
 - **Session Discovery**: Find and connect to running Tilt instances
-- **Status Monitoring**: Real-time status of Tilt resources
+- **Status Monitoring**: Real-time status of Tilt resources with summary counts
 - **Resource Management**: List, describe, enable, disable, and trigger resources
-- **Log Streaming**: Access logs from Tilt resources (with follow mode)
+- **Log Access**: Access logs from Tilt resources with ANSI stripping and tail limits
 - **WebSocket Client**: Real-time updates via Tilt's WebSocket API
 - **Safe Execution**: Secure CLI wrapper with timeout and buffer limits
+- **LLM-Optimized Responses**: Slim resource format, pagination, and status filtering
 
 ## Available Tools
 
 | Tool | Description |
 |------|-------------|
 | `tilt_discover` | Find running Tilt instances on specified ports |
-| `tilt_status` | Get Tilt session status |
-| `tilt_get_resources` | List all resources in the Tilt session |
-| `tilt_describe_resource` | Get detailed information about a resource |
-| `tilt_logs` | View logs from resources (supports streaming) |
+| `tilt_status` | Get Tilt session status summary (counts by status + errors) |
+| `tilt_get_resources` | List resources with filtering, pagination, and slim/verbose modes |
+| `tilt_describe_resource` | Get detailed information about a resource (cleaned format) |
+| `tilt_logs` | View logs from resources (with ANSI stripping, default 100 lines) |
 | `tilt_trigger` | Manually trigger a resource update |
 | `tilt_enable` | Enable a disabled resource |
 | `tilt_disable` | Disable a resource |
 | `tilt_args` | Set or clear Tiltfile arguments |
 | `tilt_wait` | Wait for resources to reach a ready state |
-| `tilt_dump` | Export Tilt engine state |
 
 ## Prerequisites
 
@@ -103,7 +103,7 @@ tilt-mcp/
 │   │   ├── disable.ts         # tilt_disable
 │   │   ├── args.ts            # tilt_args
 │   │   ├── wait.ts            # tilt_wait
-│   │   ├── dump.ts            # tilt_dump
+│   │   ├── transformers.ts    # Response transformers (slim format, ANSI strip)
 │   │   └── schemas.ts         # Zod validation schemas
 │   └── tilt/                  # Tilt integration layer
 │       ├── cli-client.ts      # Safe CLI command execution
@@ -151,7 +151,7 @@ All tool inputs are validated using Zod schemas:
 
 The project includes comprehensive tests:
 
-- **333 tests** across 21 test files
+- **397 tests** across 23 test files
 - Unit tests for all tools and clients
 - Integration tests for MCP protocol compliance
 - Mock fixtures for Tilt CLI responses

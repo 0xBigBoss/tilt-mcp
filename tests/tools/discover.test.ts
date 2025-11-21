@@ -117,4 +117,67 @@ describe('tilt_discover tool', () => {
     expect(output).toHaveLength(1);
     expect(output[0].port).toBe(fixture1.port);
   });
+
+  // Issue 1: Priority Chain Violation - args > extra > env > defaults
+  it('respects explicit args.tiltHost over extra.tiltHost', async () => {
+    const fixture = await createTiltCliFixture({ behavior: 'healthy' });
+    fixtures.push(fixture);
+
+    const result = await tiltDiscover.handler(
+      {
+        tiltHost: fixture.host,
+        portRange: [fixture.port, fixture.port],
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltHost: 'wrong-host.invalid',
+      },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    // Should find instance because args.tiltHost overrides extra.tiltHost
+    expect(output).toHaveLength(1);
+    expect(output[0].host).toBe(fixture.host);
+  });
+
+  it('respects explicit args.tiltPort over extra.tiltPort', async () => {
+    const fixture = await createTiltCliFixture({ behavior: 'healthy' });
+    fixtures.push(fixture);
+
+    const result = await tiltDiscover.handler(
+      {
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+        portRange: [fixture.port, fixture.port],
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: 99999, // Invalid port that should be ignored
+      },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    // Should find instance because args.tiltPort is used
+    expect(output).toHaveLength(1);
+    expect(output[0].port).toBe(fixture.port);
+  });
+
+  it('falls back to extra.tiltHost when args.tiltHost not provided', async () => {
+    const fixture = await createTiltCliFixture({ behavior: 'healthy' });
+    fixtures.push(fixture);
+
+    const result = await tiltDiscover.handler(
+      {
+        portRange: [fixture.port, fixture.port],
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltHost: fixture.host,
+      },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    expect(output).toHaveLength(1);
+    expect(output[0].host).toBe(fixture.host);
+  });
 });

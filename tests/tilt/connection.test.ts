@@ -152,15 +152,56 @@ describe('TiltConnection', () => {
       });
     });
 
-    it('uses default values when not specified', () => {
-      const connection = new TiltConnection();
-      const info = connection.getConnectionInfo();
+    it('uses default values when not specified (no env vars)', () => {
+      // Save and clear env vars to test built-in defaults
+      const savedPort = process.env.TILT_PORT;
+      const savedHost = process.env.TILT_HOST;
+      delete process.env.TILT_PORT;
+      delete process.env.TILT_HOST;
 
-      expect(info.port).toBe(10350);
-      expect(info.host).toBe('localhost');
-      expect(info.timeout).toBe(2000);
-      expect(info.binaryPath).toBe('tilt');
-      expect(info.cacheIntervalMs).toBe(10000);
+      try {
+        const connection = new TiltConnection();
+        const info = connection.getConnectionInfo();
+
+        expect(info.port).toBe(10350);
+        expect(info.host).toBe('localhost');
+        expect(info.timeout).toBe(2000);
+        expect(info.binaryPath).toBe('tilt');
+        expect(info.cacheIntervalMs).toBe(10000);
+      } finally {
+        // Restore env vars
+        if (savedPort !== undefined) process.env.TILT_PORT = savedPort;
+        if (savedHost !== undefined) process.env.TILT_HOST = savedHost;
+      }
+    });
+
+    it('uses TILT_PORT and TILT_HOST env vars when set', () => {
+      // Save original env vars
+      const savedPort = process.env.TILT_PORT;
+      const savedHost = process.env.TILT_HOST;
+
+      try {
+        process.env.TILT_PORT = '17350';
+        process.env.TILT_HOST = '192.168.1.50';
+
+        const connection = new TiltConnection();
+        const info = connection.getConnectionInfo();
+
+        expect(info.port).toBe(17350);
+        expect(info.host).toBe('192.168.1.50');
+      } finally {
+        // Restore env vars
+        if (savedPort !== undefined) {
+          process.env.TILT_PORT = savedPort;
+        } else {
+          delete process.env.TILT_PORT;
+        }
+        if (savedHost !== undefined) {
+          process.env.TILT_HOST = savedHost;
+        } else {
+          delete process.env.TILT_HOST;
+        }
+      }
     });
   });
 

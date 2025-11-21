@@ -151,4 +151,49 @@ describe('tilt_logs tool', () => {
     const output = JSON.parse(result.content[0].text);
     expect(output.logs).toBe('test logs\n');
   });
+
+  it('strips ANSI codes from log output', async () => {
+    // Log output with ANSI color codes
+    const logWithAnsi =
+      '\x1b[32mINFO\x1b[0m Starting server\n\x1b[31mERROR\x1b[0m Connection failed\n';
+    const expectedClean = 'INFO Starting server\nERROR Connection failed\n';
+
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: logWithAnsi,
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltLogs.handler(
+      {
+        resourceName: 'web-app',
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    expect(output.logs).toBe(expectedClean);
+  });
+
+  it('uses default tailLines of 100', async () => {
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: 'test logs\n',
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltLogs.handler(
+      {
+        resourceName: 'web-app',
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    expect(output.options.tailLines).toBe(100);
+  });
 });

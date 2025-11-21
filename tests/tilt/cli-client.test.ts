@@ -53,12 +53,51 @@ describe('TiltCliClient', () => {
       expect(info.host).toBe('192.168.1.1');
     });
 
-    test('uses defaults when not provided', () => {
-      const defaultClient = new TiltCliClient();
+    test('uses defaults when not provided (no env vars)', () => {
+      // Save and clear env vars to test built-in defaults
+      const savedPort = process.env.TILT_PORT;
+      const savedHost = process.env.TILT_HOST;
+      delete process.env.TILT_PORT;
+      delete process.env.TILT_HOST;
 
-      const info = defaultClient.getClientInfo();
-      expect(info.port).toBe(10350);
-      expect(info.host).toBe('localhost');
+      try {
+        const defaultClient = new TiltCliClient();
+        const info = defaultClient.getClientInfo();
+        expect(info.port).toBe(10350);
+        expect(info.host).toBe('localhost');
+      } finally {
+        // Restore env vars
+        if (savedPort !== undefined) process.env.TILT_PORT = savedPort;
+        if (savedHost !== undefined) process.env.TILT_HOST = savedHost;
+      }
+    });
+
+    test('uses TILT_PORT and TILT_HOST env vars when set', () => {
+      // Save original env vars
+      const savedPort = process.env.TILT_PORT;
+      const savedHost = process.env.TILT_HOST;
+
+      try {
+        process.env.TILT_PORT = '17350';
+        process.env.TILT_HOST = '192.168.1.50';
+
+        const envClient = new TiltCliClient();
+        const info = envClient.getClientInfo();
+        expect(info.port).toBe(17350);
+        expect(info.host).toBe('192.168.1.50');
+      } finally {
+        // Restore env vars
+        if (savedPort !== undefined) {
+          process.env.TILT_PORT = savedPort;
+        } else {
+          delete process.env.TILT_PORT;
+        }
+        if (savedHost !== undefined) {
+          process.env.TILT_HOST = savedHost;
+        } else {
+          delete process.env.TILT_HOST;
+        }
+      }
     });
 
     test('accepts custom binary path', () => {
@@ -341,7 +380,7 @@ describe('TiltCliClient', () => {
 
       const events = fixture.readEvents();
       const spawn = events.spawns[0];
-      expect(spawn.args).toContain('describe');
+      expect(spawn.args).toContain('get');
       expect(spawn.args).toContain('uiresource/my-resource');
     });
   });

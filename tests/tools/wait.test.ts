@@ -42,6 +42,7 @@ describe('tilt_wait tool', () => {
     const output = JSON.parse(result.content[0].text);
     expect(output.success).toBe(true);
     expect(output.resources).toEqual(['web-app']);
+    expect(output.output).toBeUndefined(); // Should not include raw CLI output
   });
 
   it('waits for all resources when none specified', async () => {

@@ -10,6 +10,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import { getDefaultTiltHost, getDefaultTiltPort } from './config.js';
 import {
   TiltCommandTimeoutError,
   TiltNotInstalledError,
@@ -63,8 +64,8 @@ export class TiltCliClient {
   private readonly binaryPath: string;
 
   constructor(config: TiltCliClientConfig = {}) {
-    this.port = config.port ?? 10350;
-    this.host = config.host ?? 'localhost';
+    this.port = config.port ?? getDefaultTiltPort();
+    this.host = config.host ?? getDefaultTiltHost();
     this.binaryPath = config.binaryPath ?? 'tilt';
   }
 
@@ -221,7 +222,7 @@ export class TiltCliClient {
    */
   async describeResource(resourceName: string): Promise<ResourceDetail> {
     const args = [
-      'describe',
+      'get',
       `uiresource/${resourceName}`,
       '-o',
       'json',

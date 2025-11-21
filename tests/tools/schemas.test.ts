@@ -373,9 +373,11 @@ describe('TiltDiscoverInput Schema', () => {
     expect(() => TiltDiscoverInput.parse(input)).not.toThrow();
   });
 
-  it('uses default portRange when not provided', () => {
+  it('portRange is undefined when not provided (default applied in tool handler)', () => {
+    // Default is applied in the tool handler using getDefaultPortRange()
+    // which reads from TILT_PORT env var, so schema doesn't have a static default
     const result = TiltDiscoverInput.parse({});
-    expect(result.portRange).toEqual([10350, 10354]);
+    expect(result.portRange).toBeUndefined();
   });
 
   it('accepts custom portRange', () => {
@@ -427,6 +429,70 @@ describe('TiltGetResourcesInput Schema', () => {
       TiltGetResourcesInput.parse({ labels: ['valid-label', '_invalid'] }),
     ).toThrow();
   });
+
+  it('accepts verbose parameter', () => {
+    expect(() => TiltGetResourcesInput.parse({ verbose: true })).not.toThrow();
+    expect(() => TiltGetResourcesInput.parse({ verbose: false })).not.toThrow();
+  });
+
+  it('defaults verbose to false', () => {
+    const result = TiltGetResourcesInput.parse({});
+    expect(result.verbose).toBe(false);
+  });
+
+  it('accepts status parameter', () => {
+    expect(() => TiltGetResourcesInput.parse({ status: 'ok' })).not.toThrow();
+    expect(() =>
+      TiltGetResourcesInput.parse({ status: 'error' }),
+    ).not.toThrow();
+    expect(() =>
+      TiltGetResourcesInput.parse({ status: 'pending' }),
+    ).not.toThrow();
+    expect(() =>
+      TiltGetResourcesInput.parse({ status: 'building' }),
+    ).not.toThrow();
+    expect(() =>
+      TiltGetResourcesInput.parse({ status: 'disabled' }),
+    ).not.toThrow();
+    expect(() => TiltGetResourcesInput.parse({ status: 'all' })).not.toThrow();
+  });
+
+  it('defaults status to all', () => {
+    const result = TiltGetResourcesInput.parse({});
+    expect(result.status).toBe('all');
+  });
+
+  it('rejects invalid status values', () => {
+    expect(() => TiltGetResourcesInput.parse({ status: 'running' })).toThrow();
+    expect(() => TiltGetResourcesInput.parse({ status: 'stopped' })).toThrow();
+  });
+
+  it('accepts limit and offset', () => {
+    expect(() =>
+      TiltGetResourcesInput.parse({ limit: 10, offset: 5 }),
+    ).not.toThrow();
+    expect(() => TiltGetResourcesInput.parse({ limit: 1 })).not.toThrow();
+    expect(() => TiltGetResourcesInput.parse({ limit: 100 })).not.toThrow();
+    expect(() => TiltGetResourcesInput.parse({ offset: 0 })).not.toThrow();
+  });
+
+  it('defaults limit to 20 and offset to 0', () => {
+    const result = TiltGetResourcesInput.parse({});
+    expect(result.limit).toBe(20);
+    expect(result.offset).toBe(0);
+  });
+
+  it('rejects invalid limit values', () => {
+    expect(() => TiltGetResourcesInput.parse({ limit: 0 })).toThrow();
+    expect(() => TiltGetResourcesInput.parse({ limit: -1 })).toThrow();
+    expect(() => TiltGetResourcesInput.parse({ limit: 101 })).toThrow();
+    expect(() => TiltGetResourcesInput.parse({ limit: 1.5 })).toThrow();
+  });
+
+  it('rejects invalid offset values', () => {
+    expect(() => TiltGetResourcesInput.parse({ offset: -1 })).toThrow();
+    expect(() => TiltGetResourcesInput.parse({ offset: 0.5 })).toThrow();
+  });
 });
 
 describe('TiltDescribeResourceInput Schema', () => {
@@ -451,7 +517,7 @@ describe('TiltLogsInput Schema', () => {
   it('accepts all log options', () => {
     const input = {
       resourceName: 'my-service',
-      follow: true,
+      // Note: follow removed from schema - MCP tools cannot stream
       tailLines: 100,
       level: 'error' as const,
       source: 'runtime' as const,
@@ -491,6 +557,11 @@ describe('TiltLogsInput Schema', () => {
     expect(() =>
       TiltLogsInput.parse({ resourceName: 'svc', tailLines: 10000 }),
     ).not.toThrow();
+  });
+
+  it('defaults tailLines to 100', () => {
+    const result = TiltLogsInput.parse({ resourceName: 'svc' });
+    expect(result.tailLines).toBe(100);
   });
 
   it('validates level enum', () => {

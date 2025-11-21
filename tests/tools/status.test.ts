@@ -19,18 +19,41 @@ describe('tilt_status tool', () => {
     fixtures.length = 0;
   });
 
-  it('returns session status with resource list', async () => {
+  it('returns session status with summary counts', async () => {
     const resourcesData = {
       apiVersion: 'tilt.dev/v1alpha1',
       kind: 'UIResourceList',
       items: [
         {
           metadata: { name: 'web-app' },
-          status: { runtimeStatus: 'ok' },
+          status: {
+            runtimeStatus: 'ok',
+            conditions: [
+              { type: 'Ready', status: 'True' },
+              { type: 'UpToDate', status: 'True' },
+            ],
+          },
         },
         {
           metadata: { name: 'api' },
-          status: { runtimeStatus: 'error' },
+          status: {
+            runtimeStatus: 'error',
+            conditions: [
+              {
+                type: 'Ready',
+                status: 'False',
+                reason: 'UpdateError',
+                message: 'Build failed',
+              },
+            ],
+          },
+        },
+        {
+          metadata: { name: 'worker' },
+          status: {
+            runtimeStatus: 'pending',
+            updateStatus: 'pending',
+          },
         },
       ],
     };
@@ -51,14 +74,23 @@ describe('tilt_status tool', () => {
 
     const output = JSON.parse(result.content[0].text);
     expect(output.sessionActive).toBe(true);
-    expect(output.resourceCount).toBe(2);
-    expect(output.resources).toHaveLength(2);
-    expect(output.resources[0].metadata.name).toBe('web-app');
+    expect(output.resourceCount).toBe(3);
+    expect(output.summary).toEqual({
+      ok: 1,
+      error: 1,
+      pending: 1,
+      building: 0,
+      disabled: 0,
+    });
+    expect(output.errors).toHaveLength(1);
+    expect(output.errors[0]).toEqual({ name: 'api', error: 'Build failed' });
     expect(output.connectionInfo.port).toBe(fixture.port);
     expect(output.connectionInfo.host).toBe(fixture.host);
+    // Should NOT have full resources array
+    expect(output.resources).toBeUndefined();
   });
 
-  it('returns empty resource list when no resources exist', async () => {
+  it('returns empty summary when no resources exist', async () => {
     const resourcesData = {
       apiVersion: 'tilt.dev/v1alpha1',
       kind: 'UIResourceList',
@@ -79,7 +111,14 @@ describe('tilt_status tool', () => {
     const output = JSON.parse(result.content[0].text);
     expect(output.sessionActive).toBe(true);
     expect(output.resourceCount).toBe(0);
-    expect(output.resources).toEqual([]);
+    expect(output.summary).toEqual({
+      ok: 0,
+      error: 0,
+      pending: 0,
+      building: 0,
+      disabled: 0,
+    });
+    expect(output.errors).toEqual([]);
   });
 
   it('throws error when Tilt is not running', async () => {

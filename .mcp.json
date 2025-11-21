@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tilt": {
+      "command": "bun",
+      "args": ["run", "src/server.ts"],
+      "cwd": "/Users/allen/0xbigboss/tilt-mcp"
+    }
+  }
+}

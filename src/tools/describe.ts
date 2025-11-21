@@ -1,12 +1,16 @@
 /**
  * tilt_describe_resource tool
  *
- * Gets detailed information about a specific resource
+ * Gets detailed information about a specific resource.
+ * Output is cleaned to remove K8s boilerplate while preserving useful structure.
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
 import { TiltConnection } from '../tilt/connection.js';
+import { cleanResource } from '../tilt/transformers.js';
+import type { UIResource } from '../tilt/types.js';
 import { TiltDescribeResourceInput, type TiltToolExtra } from './schemas.js';
 
 export const tiltDescribeResource = tool(
@@ -15,8 +19,8 @@ export const tiltDescribeResource = tool(
   TiltDescribeResourceInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
-    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
+    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
@@ -35,10 +39,11 @@ export const tiltDescribeResource = tool(
       binaryPath,
     });
 
-    const resource = await client.describeResource(args.resourceName);
+    const rawResource = await client.describeResource(args.resourceName);
+    const resource = cleanResource(rawResource as unknown as UIResource);
 
     const result = {
-      resource,
+      ...resource,
       connectionInfo: {
         port,
         host,

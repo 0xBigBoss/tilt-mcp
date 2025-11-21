@@ -5,6 +5,7 @@
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
 import { TiltConnection } from '../tilt/connection.js';
 import { TiltDiscoverInput, type TiltToolExtra } from './schemas.js';
 
@@ -21,10 +22,24 @@ export const tiltDiscover = tool(
   TiltDiscoverInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const portRange = args.portRange || [10350, 10354];
-    const [startPort, endPort] = portRange;
-    const host = extra.tiltHost ?? 'localhost';
+
+    // Priority: args > extra > env > defaults
+    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
+
+    // For portRange, if not provided in args, use default range
+    // but respect args.tiltPort or extra.tiltPort for the starting port
+    let portRange: [number, number];
+    if (args.portRange) {
+      portRange = args.portRange;
+    } else {
+      // Determine starting port with priority: args.tiltPort > extra.tiltPort > env > default
+      const startPort = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
+      const endPort = Math.min(startPort + 4, 65535);
+      portRange = [startPort, endPort];
+    }
+
+    const [startPort, endPort] = portRange;
 
     const discovered: DiscoveredInstance[] = [];
 

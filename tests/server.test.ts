@@ -24,11 +24,11 @@ describe('MCP Server Initialization', () => {
 });
 
 describe('Tool Registration - tools/list handler', () => {
-  it('registers all 6 Phase 1 tools', async () => {
+  it('registers all 10 tools', async () => {
     const response = await handleListTools();
 
     expect(response.tools).toBeDefined();
-    expect(response.tools.length).toBe(6);
+    expect(response.tools.length).toBe(10);
 
     // Verify all expected tools are registered
     const toolNames = response.tools.map((t: { name: string }) => t.name);
@@ -38,6 +38,10 @@ describe('Tool Registration - tools/list handler', () => {
     expect(toolNames).toContain('tilt_describe_resource');
     expect(toolNames).toContain('tilt_logs');
     expect(toolNames).toContain('tilt_trigger');
+    expect(toolNames).toContain('tilt_enable');
+    expect(toolNames).toContain('tilt_disable');
+    expect(toolNames).toContain('tilt_wait');
+    expect(toolNames).toContain('tilt_args');
   });
 
   it('tilt_discover has correct schema', async () => {
@@ -111,6 +115,56 @@ describe('Tool Registration - tools/list handler', () => {
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_trigger');
     expect(tool.description).toContain('trigger');
+    expect(tool.inputSchema).toBeDefined();
+  });
+
+  it('tilt_enable has correct schema', async () => {
+    const response = await handleListTools();
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_enable',
+    );
+    expect(tool).toBeDefined();
+    expect(tool.name).toBe('tilt_enable');
+    expect(tool.description).toContain('Enable');
+    expect(tool.inputSchema).toBeDefined();
+    expect(tool.inputSchema.properties.resourceName).toBeDefined();
+  });
+
+  it('tilt_disable has correct schema', async () => {
+    const response = await handleListTools();
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_disable',
+    );
+    expect(tool).toBeDefined();
+    expect(tool.name).toBe('tilt_disable');
+    expect(tool.description).toContain('Disable');
+    expect(tool.inputSchema).toBeDefined();
+    expect(tool.inputSchema.properties.resourceName).toBeDefined();
+  });
+
+  it('tilt_wait has correct schema', async () => {
+    const response = await handleListTools();
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_wait',
+    );
+    expect(tool).toBeDefined();
+    expect(tool.name).toBe('tilt_wait');
+    expect(tool.description).toContain('Wait');
+    expect(tool.inputSchema).toBeDefined();
+  });
+
+  it('tilt_args has correct schema', async () => {
+    const response = await handleListTools();
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_args',
+    );
+    expect(tool).toBeDefined();
+    expect(tool.name).toBe('tilt_args');
+    expect(tool.description).toContain('argument');
     expect(tool.inputSchema).toBeDefined();
   });
 });
@@ -219,6 +273,74 @@ describe('Tool Invocation - tools/call handler', () => {
       // Success - trigger worked
     } catch (error: unknown) {
       // Expected to fail if resource not found
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
+    }
+  });
+
+  it('tilt_enable tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_enable',
+        arguments: { resourceName: 'my-service' },
+      },
+    });
+
+    try {
+      await result;
+    } catch (error: unknown) {
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
+    }
+  });
+
+  it('tilt_disable tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_disable',
+        arguments: { resourceName: 'my-service' },
+      },
+    });
+
+    try {
+      await result;
+    } catch (error: unknown) {
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
+    }
+  });
+
+  it('tilt_wait tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_wait',
+        arguments: {},
+      },
+    });
+
+    try {
+      await result;
+    } catch (error: unknown) {
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
+    }
+  });
+
+  it('tilt_args tool is implemented and callable', async () => {
+    const result = handleCallTool({
+      params: {
+        name: 'tilt_args',
+        arguments: { args: ['--foo', 'bar'] },
+      },
+    });
+
+    try {
+      await result;
+    } catch (error: unknown) {
       expect(error instanceof Error ? error.message : '').not.toMatch(
         /not implemented/i,
       );

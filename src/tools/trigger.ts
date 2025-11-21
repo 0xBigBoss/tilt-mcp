@@ -6,6 +6,7 @@
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
 import { TiltConnection } from '../tilt/connection.js';
 import { type TiltToolExtra, TiltTriggerInput } from './schemas.js';
 
@@ -15,8 +16,8 @@ export const tiltTrigger = tool(
   TiltTriggerInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
-    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
+    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first

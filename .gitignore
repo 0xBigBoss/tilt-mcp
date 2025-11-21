@@ -37,3 +37,7 @@ temp/
 # OS
 .DS_Store
 Thumbs.db
+
+
+.envrc.private
+.env

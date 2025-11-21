@@ -83,14 +83,31 @@ export const TiltfileArgsSchema = z.array(
  */
 
 export const TiltDiscoverInput = TiltBaseInput.extend({
-  portRange: PortRangeSchema.optional().default([10350, 10354]),
+  portRange: PortRangeSchema.optional(),
 });
 
 export const TiltStatusInput = TiltBaseInput;
 
+/**
+ * Status filter values for resource filtering
+ * 'all' returns all resources regardless of status
+ */
+export const StatusFilterSchema = z.enum([
+  'ok',
+  'error',
+  'pending',
+  'building',
+  'disabled',
+  'all',
+]);
+
 export const TiltGetResourcesInput = TiltBaseInput.extend({
   filter: FilterSchema.optional(),
   labels: z.array(LabelSchema).optional(),
+  verbose: z.boolean().optional().default(false),
+  status: StatusFilterSchema.optional().default('all'),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+  offset: z.number().int().min(0).optional().default(0),
 });
 
 export const TiltDescribeResourceInput = TiltBaseInput.extend({
@@ -99,8 +116,8 @@ export const TiltDescribeResourceInput = TiltBaseInput.extend({
 
 export const TiltLogsInput = TiltBaseInput.extend({
   resourceName: ResourceNameSchema,
-  follow: z.boolean().optional(),
-  tailLines: z.number().int().positive().max(10000).optional(),
+  // Note: 'follow' mode removed - MCP tools must return a response and cannot stream
+  tailLines: z.number().int().positive().max(10000).optional().default(100),
   level: z.enum(['warn', 'error']).optional(),
   source: z.enum(['all', 'build', 'runtime']).optional(),
 });

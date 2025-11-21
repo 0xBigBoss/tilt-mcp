@@ -14,6 +14,7 @@
 
 import WebSocket from 'ws';
 import { z } from 'zod';
+import { getDefaultTiltHost, getDefaultTiltPort } from './config.js';
 
 /**
  * Configuration for WebSocket client
@@ -85,8 +86,8 @@ export class TiltWebSocketClient {
   private closeCallbacks: Set<CloseCallback> = new Set();
 
   constructor(config: TiltWebSocketConfig = {}) {
-    this.port = config.port ?? 10350;
-    this.host = config.host ?? 'localhost';
+    this.port = config.port ?? getDefaultTiltPort();
+    this.host = config.host ?? getDefaultTiltHost();
   }
 
   /**

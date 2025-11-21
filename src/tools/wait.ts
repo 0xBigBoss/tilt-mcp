@@ -6,6 +6,7 @@
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
 import { TiltConnection } from '../tilt/connection.js';
 import { type TiltToolExtra, TiltWaitInput } from './schemas.js';
 
@@ -15,8 +16,8 @@ export const tiltWait = tool(
   TiltWaitInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
-    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
+    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
@@ -35,18 +36,13 @@ export const tiltWait = tool(
       binaryPath,
     });
 
-    const output = await client.wait(
-      args.resources,
-      args.timeout,
-      args.condition,
-    );
+    await client.wait(args.resources, args.timeout, args.condition);
 
     const result = {
       success: true,
       resources: args.resources ?? 'all',
       timeout: args.timeout,
       condition: args.condition ?? 'Ready',
-      output,
       message: args.resources
         ? `Resource(s) '${args.resources.join(', ')}' are ready`
         : 'All resources are ready',
