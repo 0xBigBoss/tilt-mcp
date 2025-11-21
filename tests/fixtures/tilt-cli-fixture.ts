@@ -123,11 +123,28 @@ function main() {
         process.exit(0);
       }
       if (args[0] === 'get' && args[1] === 'uiresources') {
-        process.stdout.write(state.sessionStdout ?? '{"kind":"UIResourceList","items":[]}');
+        // Try to use sessionStdout if it looks like JSON
+        let output = state.sessionStdout;
+        if (!output || (output && !output.trim().startsWith('{'))) {
+          // sessionStdout is not JSON (probably log text), use default resource list
+          output = JSON.stringify({
+            kind: 'UIResourceList',
+            items: [
+              { metadata: { name: 'web-app' } },
+              { metadata: { name: 'test-service' } },
+              { metadata: { name: '(Tiltfile)' } },
+            ],
+          });
+        }
+        process.stdout.write(output);
         process.exit(0);
       }
       if (args[0] === 'get' && args[1]?.startsWith('uiresource/')) {
         process.stdout.write(state.sessionStdout ?? '{"kind":"UIResource","metadata":{"name":"test"}}');
+        process.exit(0);
+      }
+      if (args[0] === 'get' && args[1]?.startsWith('tiltfile/')) {
+        process.stdout.write(state.sessionStdout ?? '{"kind":"Tiltfile","metadata":{"name":"(Tiltfile)"},"spec":{"args":[]}}');
         process.exit(0);
       }
       if (args[0] === 'logs') {
