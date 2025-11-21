@@ -27,6 +27,8 @@ MCP (Model Context Protocol) server for Tilt CLI integration, enabling AI assist
 | `tilt_args` | Set or clear Tiltfile arguments |
 | `tilt_wait` | Wait for resources to reach a ready state |
 
+🚦 Connection configuration: Set `TILT_HOST` / `TILT_PORT` in your environment or in your `.mcp.json` server config. Tools no longer expose host/port inputs; a single Tilt target should be configured centrally.
+
 ## Prerequisites
 
 - [Bun](https://bun.sh) 1.3+ (runtime, package manager, test runner)
@@ -62,6 +64,13 @@ Add to your Claude Desktop MCP configuration:
   }
 }
 ```
+
+### Connection Configuration
+
+- Default connection: `localhost:10350`
+- Override via environment: `TILT_HOST`, `TILT_PORT`
+- Override via MCP config: include `env` on the server entry in `.mcp.json`
+- Tools do **not** accept host/port parameters; set them once in configuration to avoid cross-instance mistakes.
 
 ## Development
 
@@ -142,9 +151,8 @@ The `TiltWebSocketClient` connects to Tilt's WebSocket API for real-time updates
 
 All tool inputs are validated using Zod schemas:
 
-- Resource names: Kubernetes naming conventions
-- Port ranges: 1-65535
-- Hostnames: Valid DNS names or IP addresses
+- Resource names: Kubernetes naming conventions (plus special Tilt `(Tiltfile)`)
+- Port ranges (discover): 1-65535
 - Arguments: Shell injection prevention
 
 ## Testing
