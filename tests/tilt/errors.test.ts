@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  TiltCommandTimeoutError,
   TiltError,
   TiltNotInstalledError,
   TiltNotRunningError,
-  TiltResourceNotFoundError,
-  TiltCommandTimeoutError,
   TiltOutputExceededError,
+  TiltResourceNotFoundError,
 } from '../../src/tilt/errors.ts';
 
 describe('TiltError', () => {
@@ -293,16 +293,24 @@ describe('Error type checking', () => {
       new TiltOutputExceededError(1000),
     ];
 
-    const codes = errors.map(e => e.code);
+    const codes = errors.map((e) => e.code);
     const uniqueCodes = new Set(codes);
     expect(uniqueCodes.size).toBe(codes.length);
   });
 
   it('All error types are properly typed', () => {
     const notInstalled: TiltNotInstalledError = new TiltNotInstalledError();
-    const notRunning: TiltNotRunningError = new TiltNotRunningError(10350, 'localhost');
-    const notFound: TiltResourceNotFoundError = new TiltResourceNotFoundError('test');
-    const timeout: TiltCommandTimeoutError = new TiltCommandTimeoutError('test', 1000);
+    const notRunning: TiltNotRunningError = new TiltNotRunningError(
+      10350,
+      'localhost',
+    );
+    const notFound: TiltResourceNotFoundError = new TiltResourceNotFoundError(
+      'test',
+    );
+    const timeout: TiltCommandTimeoutError = new TiltCommandTimeoutError(
+      'test',
+      1000,
+    );
     const exceeded: TiltOutputExceededError = new TiltOutputExceededError(1000);
 
     // Type assertions - these should compile

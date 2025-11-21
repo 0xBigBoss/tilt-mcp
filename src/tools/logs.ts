@@ -1,22 +1,23 @@
 /**
  * tilt_logs tool
- * 
+ *
  * Gets logs from a resource with optional filtering and tailing
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
-import { TiltLogsInput } from './schemas.js';
-import { TiltConnection } from '../tilt/connection.js';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { TiltConnection } from '../tilt/connection.js';
+import { TiltLogsInput, type TiltToolExtra } from './schemas.js';
 
 export const tiltLogs = tool(
   'tilt_logs',
   'Read logs from a specific resource with optional tailing and filtering',
   TiltLogsInput.shape,
-  async (args, extra) => {
-    const port = args.tiltPort ?? (extra as any)?.tiltPort ?? 10350;
-    const host = args.tiltHost ?? (extra as any)?.tiltHost ?? 'localhost';
-    const binaryPath = (extra as any)?.tiltBinaryPath;
+  async (args, _extra) => {
+    const extra = (_extra ?? {}) as TiltToolExtra;
+    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
+    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
     const connection = new TiltConnection({
@@ -61,5 +62,5 @@ export const tiltLogs = tool(
         },
       ],
     };
-  }
+  },
 );

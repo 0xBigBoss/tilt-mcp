@@ -4,15 +4,18 @@
  * Tests port scanning and Tilt instance discovery
  */
 
-import { describe, it, expect, afterEach } from 'bun:test';
-import { createTiltCliFixture, type TiltCliFixture } from '../fixtures/tilt-cli-fixture.js';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { tiltDiscover } from '../../src/tools/discover.js';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.js';
 
 describe('tilt_discover tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
-    fixtures.forEach(f => f.cleanup());
+    fixtures.forEach((f) => f.cleanup());
     fixtures.length = 0;
   });
 
@@ -25,12 +28,12 @@ describe('tilt_discover tool', () => {
       {
         tiltBinaryPath: fixture.tiltBinary,
         tiltHost: fixture.host,
-      }
+      },
     );
 
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe('text');
-    
+
     const output = JSON.parse(result.content[0].text);
     expect(output).toHaveLength(1);
     expect(output[0].host).toBe(fixture.host);
@@ -51,7 +54,7 @@ describe('tilt_discover tool', () => {
       {
         tiltBinaryPath: fixture1.tiltBinary,
         tiltHost: fixture1.host,
-      }
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -69,7 +72,7 @@ describe('tilt_discover tool', () => {
       {
         tiltBinaryPath: fixture.tiltBinary,
         tiltHost: fixture.host,
-      }
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -85,7 +88,7 @@ describe('tilt_discover tool', () => {
       {
         tiltBinaryPath: fixture.tiltBinary,
         tiltHost: fixture.host,
-      }
+      },
     );
 
     // Should scan default range even if no instances found
@@ -106,7 +109,7 @@ describe('tilt_discover tool', () => {
       {
         tiltBinaryPath: fixture1.tiltBinary,
         tiltHost: fixture1.host,
-      }
+      },
     );
 
     const output = JSON.parse(result.content[0].text);

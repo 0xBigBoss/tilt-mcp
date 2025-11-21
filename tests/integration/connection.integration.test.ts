@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { createTiltCliFixture } from '../fixtures/tilt-cli-fixture.ts';
 import { TiltConnection } from '../../src/tilt/connection.ts';
+import { createTiltCliFixture } from '../fixtures/tilt-cli-fixture.ts';
 
 describe('TiltConnection integration (tilt fixture)', () => {
   it('checks session against an isolated tilt fixture on a free port', async () => {

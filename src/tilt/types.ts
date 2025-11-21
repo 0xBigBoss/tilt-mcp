@@ -1,7 +1,7 @@
 /**
  * Tilt resource type definitions
  * Based on real Tilt API output from `tilt get uiresources -o json`
- * 
+ *
  * These types match the actual Kubernetes-style resources returned by Tilt.
  * Reference: Tilt v0.35.0
  */
@@ -9,7 +9,7 @@
 /**
  * Runtime status of a resource
  */
-export type RuntimeStatus = 
+export type RuntimeStatus =
   | 'ok'
   | 'error'
   | 'warning'

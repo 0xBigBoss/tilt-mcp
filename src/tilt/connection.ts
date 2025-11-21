@@ -1,6 +1,6 @@
 /**
  * TiltConnection - Session management with optimized caching
- * 
+ *
  * Manages connection to Tilt API server with:
  * - 10-second session cache
  * - Force refresh capability
@@ -8,11 +8,11 @@
  * - Proper error handling and propagation
  */
 
-import { spawn } from 'child_process';
+import { spawn } from 'node:child_process';
 import {
+  TiltCommandTimeoutError,
   TiltNotInstalledError,
   TiltNotRunningError,
-  TiltCommandTimeoutError,
 } from './errors.js';
 
 export interface TiltConnectionConfig {
@@ -47,7 +47,7 @@ export class TiltConnection {
 
   /**
    * Check if Tilt session is active
-   * 
+   *
    * @param forceRefresh - Bypass cache and query immediately
    * @returns true if session is active
    * @throws TiltNotInstalledError if tilt command not found
@@ -60,7 +60,14 @@ export class TiltConnection {
     }
 
     try {
-      await this.execTilt(['get', 'session', '--port', this.port.toString(), '--host', this.host]);
+      await this.execTilt([
+        'get',
+        'session',
+        '--port',
+        this.port.toString(),
+        '--host',
+        this.host,
+      ]);
 
       // Update cache on success
       this.sessionActive = true;

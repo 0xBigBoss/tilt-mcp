@@ -1,18 +1,18 @@
 /**
- * tilt_status tool
+ * tilt_wait tool
  *
- * Gets overall Tilt session status
+ * Waits for resources to reach ready state
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
 import { TiltConnection } from '../tilt/connection.js';
-import { TiltStatusInput, type TiltToolExtra } from './schemas.js';
+import { type TiltToolExtra, TiltWaitInput } from './schemas.js';
 
-export const tiltStatus = tool(
-  'tilt_status',
-  'Get overall Tilt status and resource summary',
-  TiltStatusInput.shape,
+export const tiltWait = tool(
+  'tilt_wait',
+  'Wait for Tilt resource(s) to reach ready state',
+  TiltWaitInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
     const port = args.tiltPort ?? extra.tiltPort ?? 10350;
@@ -26,21 +26,30 @@ export const tiltStatus = tool(
       binaryPath,
     });
 
-    const sessionActive = await connection.checkSession();
+    await connection.checkSession();
 
-    // Get resources using CLI client
+    // Wait for resources using CLI client
     const client = new TiltCliClient({
       port,
       host,
       binaryPath,
     });
 
-    const resources = await client.getResources();
+    const output = await client.wait(
+      args.resources,
+      args.timeout,
+      args.condition,
+    );
 
     const result = {
-      sessionActive,
-      resourceCount: resources.length,
-      resources,
+      success: true,
+      resources: args.resources ?? 'all',
+      timeout: args.timeout,
+      condition: args.condition ?? 'Ready',
+      output,
+      message: args.resources
+        ? `Resource(s) '${args.resources.join(', ')}' are ready`
+        : 'All resources are ready',
       connectionInfo: {
         port,
         host,

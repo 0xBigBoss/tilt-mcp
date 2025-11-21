@@ -10,18 +10,19 @@
  * - In-process log tailing
  */
 
-/* eslint-disable @typescript-eslint/await-thenable */
-
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { createTiltCliFixture, type TiltCliFixture } from '../fixtures/tilt-cli-fixture.js';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { TiltCliClient } from '../../src/tilt/cli-client.js';
 import {
+  TiltCommandTimeoutError,
   TiltNotInstalledError,
   TiltNotRunningError,
-  TiltResourceNotFoundError,
-  TiltCommandTimeoutError,
   TiltOutputExceededError,
+  TiltResourceNotFoundError,
 } from '../../src/tilt/errors.js';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.js';
 
 describe('TiltCliClient', () => {
   let fixture: TiltCliFixture;
@@ -46,7 +47,7 @@ describe('TiltCliClient', () => {
         port: 12345,
         host: '192.168.1.1',
       });
-      
+
       const info = customClient.getClientInfo();
       expect(info.port).toBe(12345);
       expect(info.host).toBe('192.168.1.1');
@@ -54,7 +55,7 @@ describe('TiltCliClient', () => {
 
     test('uses defaults when not provided', () => {
       const defaultClient = new TiltCliClient();
-      
+
       const info = defaultClient.getClientInfo();
       expect(info.port).toBe(10350);
       expect(info.host).toBe('localhost');
@@ -64,7 +65,7 @@ describe('TiltCliClient', () => {
       const customClient = new TiltCliClient({
         binaryPath: '/custom/path/to/tilt',
       });
-      
+
       const info = customClient.getClientInfo();
       expect(info.binaryPath).toBe('/custom/path/to/tilt');
     });
@@ -83,7 +84,7 @@ describe('TiltCliClient', () => {
 
       const events = fixture.readEvents();
       expect(events.spawns.length).toBeGreaterThan(0);
-      
+
       // Verify args array structure (get, uiresources, -o, json, --port, <port>, --host, <host>)
       const spawn = events.spawns[0];
       expect(spawn.args).toContain('get');
@@ -103,11 +104,11 @@ describe('TiltCliClient', () => {
 
       const events = fixture.readEvents();
       const spawn = events.spawns[0];
-      
+
       const portIndex = spawn.args.indexOf('--port');
       expect(portIndex).toBeGreaterThan(-1);
       expect(spawn.args[portIndex + 1]).toBe(fixture.port.toString());
-      
+
       const hostIndex = spawn.args.indexOf('--host');
       expect(hostIndex).toBeGreaterThan(-1);
       expect(spawn.args[hostIndex + 1]).toBe(fixture.host);
@@ -119,7 +120,7 @@ describe('TiltCliClient', () => {
       fixture.setBehavior('hang');
 
       await expect(
-        client.execTilt(['get', 'session'], { timeout: 100 })
+        client.execTilt(['get', 'session'], { timeout: 100 }),
       ).rejects.toThrow(TiltCommandTimeoutError);
 
       // Note: Signal recording in fixture has timing issues in tests
@@ -162,7 +163,7 @@ describe('TiltCliClient', () => {
       });
 
       await expect(
-        client.execTilt(['get', 'session'], { maxBuffer: 100 * 1024 })
+        client.execTilt(['get', 'session'], { maxBuffer: 100 * 1024 }),
       ).rejects.toThrow(TiltOutputExceededError);
     });
 
@@ -195,17 +196,17 @@ describe('TiltCliClient', () => {
         binaryPath: '/nonexistent/tilt',
       });
 
-      await expect(
-        badClient.execTilt(['get', 'session'])
-      ).rejects.toThrow(TiltNotInstalledError);
+      await expect(badClient.execTilt(['get', 'session'])).rejects.toThrow(
+        TiltNotInstalledError,
+      );
     });
 
     test('connection refused throws TiltNotRunningError', async () => {
       fixture.setBehavior('refused');
 
-      await expect(
-        client.execTilt(['get', 'session'])
-      ).rejects.toThrow(TiltNotRunningError);
+      await expect(client.execTilt(['get', 'session'])).rejects.toThrow(
+        TiltNotRunningError,
+      );
     });
 
     test('TiltNotRunningError includes port and host', async () => {
@@ -228,9 +229,9 @@ describe('TiltCliClient', () => {
       });
       fixture.setBehavior('refused'); // Force error path
 
-      await expect(
-        client.describeResource('missing-resource')
-      ).rejects.toThrow(TiltResourceNotFoundError);
+      await expect(client.describeResource('missing-resource')).rejects.toThrow(
+        TiltResourceNotFoundError,
+      );
     });
 
     test('TiltResourceNotFoundError includes resource name', async () => {
@@ -244,7 +245,9 @@ describe('TiltCliClient', () => {
         expect.unreachable('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(TiltResourceNotFoundError);
-        expect((error as TiltResourceNotFoundError).details?.resourceName).toBe('my-service');
+        expect((error as TiltResourceNotFoundError).details?.resourceName).toBe(
+          'my-service',
+        );
       }
     });
   });
@@ -264,7 +267,7 @@ describe('TiltCliClient', () => {
       });
 
       const resources = await client.getResources();
-      
+
       expect(resources).toHaveLength(2);
       expect(resources[0].metadata.name).toBe('frontend');
       expect(resources[1].metadata.name).toBe('backend');
@@ -321,14 +324,17 @@ describe('TiltCliClient', () => {
       });
 
       const detail = await client.describeResource('my-service');
-      
+
       expect(detail.metadata.name).toBe('my-service');
       expect(detail.status).toBeDefined();
     });
 
     test('passes resource name in correct format', async () => {
       fixture.setBehavior('healthy', {
-        sessionStdout: JSON.stringify({ kind: 'UIResource', metadata: { name: 'test' } }),
+        sessionStdout: JSON.stringify({
+          kind: 'UIResource',
+          metadata: { name: 'test' },
+        }),
       });
 
       await client.describeResource('my-resource');
@@ -349,7 +355,7 @@ describe('TiltCliClient', () => {
       });
 
       const logs = await client.getLogs('my-service');
-      
+
       expect(logs).toBe(mockLogs);
     });
 
@@ -399,7 +405,7 @@ describe('TiltCliClient', () => {
       });
 
       const logs = await client.getLogs('my-service', { tailLines: 2 });
-      
+
       expect(logs).toBe('line4\nline5\n');
     });
   });
@@ -417,6 +423,148 @@ describe('TiltCliClient', () => {
       expect(spawn.args).toContain('trigger');
       expect(spawn.args).toContain('my-service');
     });
+  });
+
+  describe('enable()', () => {
+    test('enables a resource', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: 'enabled\n',
+      });
+
+      await client.enable('my-service');
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('enable');
+      expect(spawn.args).toContain('my-service');
+    });
+  });
+
+  describe('disable()', () => {
+    test('disables a resource', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: 'disabled\n',
+      });
+
+      await client.disable('my-service');
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('disable');
+      expect(spawn.args).toContain('my-service');
+    });
+  });
+
+  describe('setArgs()', () => {
+    test('sets Tiltfile args', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: '',
+      });
+
+      await client.setArgs(['frontend', 'backend']);
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('args');
+      expect(spawn.args).toContain('--');
+      expect(spawn.args).toContain('frontend');
+      expect(spawn.args).toContain('backend');
+    });
+
+    test('clears Tiltfile args with clear flag', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: '',
+      });
+
+      await client.setArgs(undefined, true);
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('args');
+      expect(spawn.args).toContain('--clear');
+    });
+  });
+
+  describe('wait()', () => {
+    test('waits for specific resources', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: 'condition met',
+      });
+
+      await client.wait(['frontend', 'backend'], 30);
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('wait');
+      expect(spawn.args).toContain('--for');
+      expect(spawn.args).toContain('condition=Ready');
+      expect(spawn.args).toContain('--timeout');
+      expect(spawn.args).toContain('30s');
+      expect(spawn.args).toContain('uiresource/frontend');
+      expect(spawn.args).toContain('uiresource/backend');
+    });
+
+    test('waits for all resources when none specified', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: 'all ready',
+      });
+
+      await client.wait();
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('wait');
+      expect(spawn.args).toContain('--all');
+    });
+
+    test('uses custom condition', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: 'condition met',
+      });
+
+      await client.wait(['frontend'], undefined, 'Available');
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('condition=Available');
+    });
+  });
+
+  describe('dumpEngine()', () => {
+    test('dumps engine state', async () => {
+      const engineState = { engine: 'state', resources: [] };
+      fixture.setBehavior('healthy', {
+        sessionStdout: JSON.stringify(engineState),
+      });
+
+      const result = await client.dumpEngine();
+
+      expect(JSON.parse(result)).toEqual(engineState);
+
+      const events = fixture.readEvents();
+      const spawn = events.spawns[0];
+      expect(spawn.args).toContain('dump');
+      expect(spawn.args).toContain('engine');
+    });
+  });
+
+  describe('Log Follow Mode', () => {
+    test('getLogs with follow mode does not timeout immediately', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStdout: 'log line 1\nlog line 2\nlog line 3\n',
+      });
+
+      // This should NOT timeout immediately
+      // The fixture returns logs after a brief delay
+      const logsPromise = client.getLogs('myresource', { follow: true });
+
+      // Give it a moment to start - should not kill immediately
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // The process should complete normally without timeout error
+      const logs = await logsPromise;
+      expect(logs).toContain('log line 1');
+    }, 5000);
   });
 
   describe('tailLines() - In-Process Tailing', () => {

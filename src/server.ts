@@ -12,21 +12,21 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
-  TiltDiscoverInput,
-  TiltStatusInput,
-  TiltGetResourcesInput,
-  TiltDescribeResourceInput,
-  TiltLogsInput,
-  TiltTriggerInput,
-} from './tools/schemas.js';
-import {
-  tiltDiscover,
-  tiltStatus,
-  tiltGetResources,
   tiltDescribeResource,
+  tiltDiscover,
+  tiltGetResources,
   tiltLogs,
+  tiltStatus,
   tiltTrigger,
 } from './tools/index.js';
+import {
+  TiltDescribeResourceInput,
+  TiltDiscoverInput,
+  TiltGetResourcesInput,
+  TiltLogsInput,
+  TiltStatusInput,
+  TiltTriggerInput,
+} from './tools/schemas.js';
 
 /**
  * Handler for tools/list request
@@ -127,7 +127,7 @@ export function createServer(): Server {
       capabilities: {
         tools: {},
       },
-    }
+    },
   );
 
   // Register handlers

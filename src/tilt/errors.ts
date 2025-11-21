@@ -1,6 +1,6 @@
 /**
  * Tilt Error Taxonomy
- * 
+ *
  * Base error class and specific error types for all Tilt CLI failures.
  * Each error includes:
  * - Clear description of what went wrong
@@ -17,15 +17,19 @@ export class TiltError extends Error {
   public readonly code: string;
   public readonly details?: Record<string, unknown>;
 
-  constructor(message: string, code: string, details?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    code: string,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = 'TiltError';
     this.code = code;
     this.details = details;
-    
+
     // Maintain proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, TiltError.prototype);
-    
+
     // Capture stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -35,7 +39,7 @@ export class TiltError extends Error {
 
 /**
  * Tilt CLI executable not found in PATH.
- * 
+ *
  * What: The 'tilt' command could not be executed (ENOENT error)
  * Why: Tilt is not installed or not in PATH
  * Fix: Install Tilt from https://docs.tilt.dev
@@ -45,7 +49,7 @@ export class TiltNotInstalledError extends TiltError {
     super(
       'Tilt CLI not found in PATH. Install Tilt from https://docs.tilt.dev and ensure it is in your PATH.',
       'TILT_NOT_INSTALLED',
-      {}
+      {},
     );
     this.name = 'TiltNotInstalledError';
     Object.setPrototypeOf(this, TiltNotInstalledError.prototype);
@@ -54,7 +58,7 @@ export class TiltNotInstalledError extends TiltError {
 
 /**
  * No active Tilt session at the specified host:port.
- * 
+ *
  * What: Cannot connect to Tilt API server
  * Why: No 'tilt up' session running, or wrong host/port
  * Fix: Run 'tilt up' first, or verify correct port
@@ -64,7 +68,7 @@ export class TiltNotRunningError extends TiltError {
     super(
       `No active Tilt session on ${host}:${port}. Run 'tilt up' first or verify the correct port.`,
       'TILT_NOT_RUNNING',
-      { port, host }
+      { port, host },
     );
     this.name = 'TiltNotRunningError';
     Object.setPrototypeOf(this, TiltNotRunningError.prototype);
@@ -73,7 +77,7 @@ export class TiltNotRunningError extends TiltError {
 
 /**
  * Requested resource does not exist in Tilt.
- * 
+ *
  * What: Resource name not found in current Tilt session
  * Why: Typo in name, or resource not defined in Tiltfile
  * Fix: Check resource name spelling, or list available resources
@@ -83,7 +87,7 @@ export class TiltResourceNotFoundError extends TiltError {
     super(
       `Resource "${resourceName}" not found. Check the name spelling or list available resources.`,
       'TILT_RESOURCE_NOT_FOUND',
-      { resourceName }
+      { resourceName },
     );
     this.name = 'TiltResourceNotFoundError';
     Object.setPrototypeOf(this, TiltResourceNotFoundError.prototype);
@@ -92,7 +96,7 @@ export class TiltResourceNotFoundError extends TiltError {
 
 /**
  * Tilt CLI command exceeded timeout duration.
- * 
+ *
  * What: Command did not complete within allowed time
  * Why: Tilt is unresponsive, network issues, or command is too slow
  * Fix: Check Tilt health, increase timeout, or simplify query
@@ -102,7 +106,7 @@ export class TiltCommandTimeoutError extends TiltError {
     super(
       `Tilt command '${command}' timed out after ${timeoutMs}ms. Check Tilt health or increase timeout.`,
       'TILT_COMMAND_TIMEOUT',
-      { command, timeoutMs }
+      { command, timeoutMs },
     );
     this.name = 'TiltCommandTimeoutError';
     Object.setPrototypeOf(this, TiltCommandTimeoutError.prototype);
@@ -111,7 +115,7 @@ export class TiltCommandTimeoutError extends TiltError {
 
 /**
  * Tilt CLI output exceeded maximum buffer size.
- * 
+ *
  * What: Command output was too large to buffer in memory
  * Why: Logs or resource list is very large
  * Fix: Use filters to reduce output, increase maxBuffer, or use pagination
@@ -121,7 +125,7 @@ export class TiltOutputExceededError extends TiltError {
     super(
       `Tilt command output exceeded maximum buffer size of ${maxBufferBytes} bytes. Use filters to reduce output or increase the buffer limit.`,
       'TILT_OUTPUT_EXCEEDED',
-      { maxBufferBytes }
+      { maxBufferBytes },
     );
     this.name = 'TiltOutputExceededError';
     Object.setPrototypeOf(this, TiltOutputExceededError.prototype);

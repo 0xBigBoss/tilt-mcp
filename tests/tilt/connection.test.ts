@@ -1,18 +1,21 @@
-/* eslint-disable @typescript-eslint/await-thenable */
-
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { createTiltCliFixture, TiltCliFixture } from '../fixtures/tilt-cli-fixture.ts';
 import { TiltConnection } from '../../src/tilt/connection.ts';
 import {
   TiltCommandTimeoutError,
   TiltNotInstalledError,
   TiltNotRunningError,
 } from '../../src/tilt/errors.ts';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.ts';
 
 describe('TiltConnection', () => {
   let fixture: TiltCliFixture | undefined;
 
-  const buildConnection = (overrides: Partial<ConstructorParameters<typeof TiltConnection>[0]> = {}) => {
+  const buildConnection = (
+    overrides: Partial<ConstructorParameters<typeof TiltConnection>[0]> = {},
+  ) => {
     if (!fixture) {
       throw new Error('Fixture not initialized');
     }
@@ -43,27 +46,31 @@ describe('TiltConnection', () => {
       const result = await connection.checkSession();
 
       expect(result).toBe(true);
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(1);
     });
 
     it('throws TiltNotInstalledError when tilt binary is missing', async () => {
       const connection = new TiltConnection({
-        port: fixture!.port,
-        host: fixture!.host,
+        port: fixture?.port,
+        host: fixture?.host,
         timeout: 100,
         binaryPath: '/path/that/does/not/exist/tilt',
       });
 
-      await expect(connection.checkSession()).rejects.toThrow(TiltNotInstalledError);
+      await expect(connection.checkSession()).rejects.toThrow(
+        TiltNotInstalledError,
+      );
     });
 
     it('throws TiltNotRunningError when connection is refused', async () => {
-      fixture!.setBehavior('refused');
+      fixture?.setBehavior('refused');
       const connection = buildConnection();
 
-      await expect(connection.checkSession()).rejects.toThrow(TiltNotRunningError);
-      const events = fixture!.readEvents();
+      await expect(connection.checkSession()).rejects.toThrow(
+        TiltNotRunningError,
+      );
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(1);
     });
   });
@@ -75,7 +82,7 @@ describe('TiltConnection', () => {
       await connection.checkSession();
       await connection.checkSession();
 
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(1);
     });
 
@@ -83,10 +90,10 @@ describe('TiltConnection', () => {
       const connection = buildConnection({ cacheIntervalMs: 30 });
 
       await connection.checkSession();
-      await new Promise(resolve => setTimeout(resolve, 40));
+      await new Promise((resolve) => setTimeout(resolve, 40));
       await connection.checkSession();
 
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(2);
     });
 
@@ -96,7 +103,7 @@ describe('TiltConnection', () => {
       await connection.checkSession();
       await connection.checkSession(true);
 
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(2);
     });
   });
@@ -109,7 +116,7 @@ describe('TiltConnection', () => {
       connection.invalidateCache();
       await connection.checkSession();
 
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(2);
     });
 
@@ -117,13 +124,15 @@ describe('TiltConnection', () => {
       const connection = buildConnection();
       await connection.checkSession();
 
-      fixture!.setBehavior('refused');
-      await expect(connection.checkSession(true)).rejects.toThrow(TiltNotRunningError);
+      fixture?.setBehavior('refused');
+      await expect(connection.checkSession(true)).rejects.toThrow(
+        TiltNotRunningError,
+      );
 
-      fixture!.setBehavior('healthy');
+      fixture?.setBehavior('healthy');
       await connection.checkSession(true);
 
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(3);
     });
   });
@@ -135,10 +144,10 @@ describe('TiltConnection', () => {
       const info = connection.getConnectionInfo();
 
       expect(info).toEqual({
-        port: fixture!.port,
-        host: fixture!.host,
+        port: fixture?.port,
+        host: fixture?.host,
         timeout: 500,
-        binaryPath: fixture!.tiltBinary,
+        binaryPath: fixture?.tiltBinary,
         cacheIntervalMs: 45,
       });
     });
@@ -157,14 +166,18 @@ describe('TiltConnection', () => {
 
   describe('Timeout handling', () => {
     it('kills process on timeout and throws TiltCommandTimeoutError', async () => {
-      fixture!.setBehavior('hang', { hangMs: 20000 });
+      fixture?.setBehavior('hang', { hangMs: 20000 });
       const connection = buildConnection({ timeout: 500 });
 
-      await expect(connection.checkSession()).rejects.toThrow(TiltCommandTimeoutError);
+      await expect(connection.checkSession()).rejects.toThrow(
+        TiltCommandTimeoutError,
+      );
 
-      const events = fixture!.readEvents();
+      const events = fixture?.readEvents();
       expect(events.spawns.length).toBe(1);
-      expect(events.signals.some(event => event.signal === 'SIGTERM')).toBe(true);
+      expect(events.signals.some((event) => event.signal === 'SIGTERM')).toBe(
+        true,
+      );
     });
   });
 });

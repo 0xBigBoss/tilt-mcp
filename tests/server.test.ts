@@ -9,12 +9,16 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { createServer, handleListTools, handleCallTool } from '../src/server.ts';
+import {
+  createServer,
+  handleCallTool,
+  handleListTools,
+} from '../src/server.ts';
 
 describe('MCP Server Initialization', () => {
   it('creates server with correct name and version', () => {
     const server = createServer();
-    
+
     expect(server).toBeDefined();
   });
 });
@@ -22,10 +26,10 @@ describe('MCP Server Initialization', () => {
 describe('Tool Registration - tools/list handler', () => {
   it('registers all 6 Phase 1 tools', async () => {
     const response = await handleListTools();
-    
+
     expect(response.tools).toBeDefined();
     expect(response.tools.length).toBe(6);
-    
+
     // Verify all expected tools are registered
     const toolNames = response.tools.map((t: { name: string }) => t.name);
     expect(toolNames).toContain('tilt_discover');
@@ -38,8 +42,10 @@ describe('Tool Registration - tools/list handler', () => {
 
   it('tilt_discover has correct schema', async () => {
     const response = await handleListTools();
-    
-    const tool = response.tools.find((t: { name: string }) => t.name === 'tilt_discover');
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_discover',
+    );
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_discover');
     expect(tool.description).toContain('Discover running Tilt instances');
@@ -49,8 +55,10 @@ describe('Tool Registration - tools/list handler', () => {
 
   it('tilt_status has correct schema', async () => {
     const response = await handleListTools();
-    
-    const tool = response.tools.find((t: { name: string }) => t.name === 'tilt_status');
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_status',
+    );
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_status');
     expect(tool.description).toContain('Get overall Tilt status');
@@ -59,8 +67,10 @@ describe('Tool Registration - tools/list handler', () => {
 
   it('tilt_get_resources has correct schema', async () => {
     const response = await handleListTools();
-    
-    const tool = response.tools.find((t: { name: string }) => t.name === 'tilt_get_resources');
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_get_resources',
+    );
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_get_resources');
     expect(tool.description).toContain('List all resources');
@@ -69,8 +79,10 @@ describe('Tool Registration - tools/list handler', () => {
 
   it('tilt_describe_resource has correct schema', async () => {
     const response = await handleListTools();
-    
-    const tool = response.tools.find((t: { name: string }) => t.name === 'tilt_describe_resource');
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_describe_resource',
+    );
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_describe_resource');
     expect(tool.description).toContain('detailed information');
@@ -80,8 +92,10 @@ describe('Tool Registration - tools/list handler', () => {
 
   it('tilt_logs has correct schema', async () => {
     const response = await handleListTools();
-    
-    const tool = response.tools.find((t: { name: string }) => t.name === 'tilt_logs');
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_logs',
+    );
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_logs');
     expect(tool.description).toContain('logs');
@@ -90,8 +104,10 @@ describe('Tool Registration - tools/list handler', () => {
 
   it('tilt_trigger has correct schema', async () => {
     const response = await handleListTools();
-    
-    const tool = response.tools.find((t: { name: string }) => t.name === 'tilt_trigger');
+
+    const tool = response.tools.find(
+      (t: { name: string }) => t.name === 'tilt_trigger',
+    );
     expect(tool).toBeDefined();
     expect(tool.name).toBe('tilt_trigger');
     expect(tool.description).toContain('trigger');
@@ -125,9 +141,11 @@ describe('Tool Invocation - tools/call handler', () => {
     try {
       await result;
       // Success - Tilt is running
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Expected to fail if Tilt not running
-      expect(error.message).not.toMatch(/not implemented/i);
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
     }
   });
 
@@ -142,9 +160,11 @@ describe('Tool Invocation - tools/call handler', () => {
     try {
       await result;
       // Success - Tilt is running
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Expected to fail if Tilt not running
-      expect(error.message).not.toMatch(/not implemented/i);
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
     }
   });
 
@@ -159,9 +179,11 @@ describe('Tool Invocation - tools/call handler', () => {
     try {
       await result;
       // Success - resource exists
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Expected to fail if resource not found
-      expect(error.message).not.toMatch(/not implemented/i);
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
     }
   });
 
@@ -176,9 +198,11 @@ describe('Tool Invocation - tools/call handler', () => {
     try {
       await result;
       // Success - logs available
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Expected to fail if resource not found
-      expect(error.message).not.toMatch(/not implemented/i);
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
     }
   });
 
@@ -187,15 +211,17 @@ describe('Tool Invocation - tools/call handler', () => {
       params: {
         name: 'tilt_trigger',
         arguments: { resourceName: 'my-service' },
-        },
-      });
+      },
+    });
 
     try {
       await result;
       // Success - trigger worked
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Expected to fail if resource not found
-      expect(error.message).not.toMatch(/not implemented/i);
+      expect(error instanceof Error ? error.message : '').not.toMatch(
+        /not implemented/i,
+      );
     }
   });
 });
@@ -208,7 +234,7 @@ describe('Error Handling', () => {
           name: 'unknown_tool',
           arguments: {},
         },
-      })
+      }),
     ).rejects.toThrow(/Unknown tool/);
   });
 
@@ -219,7 +245,7 @@ describe('Error Handling', () => {
           name: 'tilt_describe_resource',
           arguments: {}, // Missing required resourceName
         },
-      })
+      }),
     ).rejects.toThrow();
   });
 
@@ -230,7 +256,7 @@ describe('Error Handling', () => {
           name: 'tilt_logs',
           arguments: {}, // Missing required resourceName
         },
-      })
+      }),
     ).rejects.toThrow();
   });
 
@@ -241,7 +267,7 @@ describe('Error Handling', () => {
           name: 'tilt_describe_resource',
           arguments: { resourceName: '../../../etc/passwd' },
         },
-      })
+      }),
     ).rejects.toThrow();
   });
 
@@ -252,7 +278,7 @@ describe('Error Handling', () => {
           name: 'tilt_status',
           arguments: { tiltPort: 99999 },
         },
-      })
+      }),
     ).rejects.toThrow();
   });
 });
@@ -260,11 +286,11 @@ describe('Error Handling', () => {
 describe('MCP Protocol Responses', () => {
   it('tools/list returns proper MCP response format', async () => {
     const response = await handleListTools();
-    
+
     expect(response).toBeDefined();
     expect(response.tools).toBeDefined();
     expect(Array.isArray(response.tools)).toBe(true);
-    
+
     // Verify tool format
     response.tools.forEach((tool: unknown) => {
       expect(tool).toHaveProperty('name');
@@ -275,18 +301,25 @@ describe('MCP Protocol Responses', () => {
 
   it('all tool schemas have proper JSON Schema structure', async () => {
     const response = await handleListTools();
-    
-    response.tools.forEach((tool: any) => {
-      expect(tool.inputSchema.type).toBe('object');
-      expect(tool.inputSchema.properties).toBeDefined();
-      
-      // All tools should support optional tiltPort and tiltHost
-      if (tool.inputSchema.properties.tiltPort) {
-        expect(tool.inputSchema.properties.tiltPort.type).toBe('integer');
-      }
-      if (tool.inputSchema.properties.tiltHost) {
-        expect(tool.inputSchema.properties.tiltHost.type).toBe('string');
-      }
-    });
+
+    response.tools.forEach(
+      (tool: {
+        inputSchema: {
+          type: string;
+          properties: Record<string, { type: string }>;
+        };
+      }) => {
+        expect(tool.inputSchema.type).toBe('object');
+        expect(tool.inputSchema.properties).toBeDefined();
+
+        // All tools should support optional tiltPort and tiltHost
+        if (tool.inputSchema.properties.tiltPort) {
+          expect(tool.inputSchema.properties.tiltPort.type).toBe('integer');
+        }
+        if (tool.inputSchema.properties.tiltHost) {
+          expect(tool.inputSchema.properties.tiltHost.type).toBe('string');
+        }
+      },
+    );
   });
 });

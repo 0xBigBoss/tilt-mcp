@@ -1,17 +1,17 @@
 /**
- * Tests for tilt_trigger tool
+ * Tests for tilt_enable tool
  *
- * Tests manual resource triggering
+ * Tests enabling resources in Tilt
  */
 
 import { afterEach, describe, expect, it } from 'bun:test';
-import { tiltTrigger } from '../../src/tools/trigger.js';
+import { tiltEnable } from '../../src/tools/enable.js';
 import {
   createTiltCliFixture,
   type TiltCliFixture,
 } from '../fixtures/tilt-cli-fixture.js';
 
-describe('tilt_trigger tool', () => {
+describe('tilt_enable tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
@@ -19,14 +19,14 @@ describe('tilt_trigger tool', () => {
     fixtures.length = 0;
   });
 
-  it('triggers a resource successfully', async () => {
+  it('enables a resource successfully', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: 'triggered',
+      stdout: 'enabled',
     });
     fixtures.push(fixture);
 
-    const result = await tiltTrigger.handler(
+    const result = await tiltEnable.handler(
       {
         resourceName: 'web-app',
         tiltPort: fixture.port,
@@ -41,9 +41,7 @@ describe('tilt_trigger tool', () => {
     const output = JSON.parse(result.content[0].text);
     expect(output.success).toBe(true);
     expect(output.resourceName).toBe('web-app');
-    expect(output.message).toContain('triggered');
-    expect(output.connectionInfo.port).toBe(fixture.port);
-    expect(output.connectionInfo.host).toBe(fixture.host);
+    expect(output.message).toContain('enabled');
   });
 
   it('throws error when Tilt is not running', async () => {
@@ -51,7 +49,7 @@ describe('tilt_trigger tool', () => {
     fixtures.push(fixture);
 
     await expect(
-      tiltTrigger.handler(
+      tiltEnable.handler(
         {
           resourceName: 'web-app',
           tiltPort: fixture.port,
@@ -65,11 +63,11 @@ describe('tilt_trigger tool', () => {
   it('uses default port and host when not provided', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: 'triggered',
+      stdout: 'enabled',
     });
     fixtures.push(fixture);
 
-    const result = await tiltTrigger.handler(
+    const result = await tiltEnable.handler(
       { resourceName: 'web-app' },
       {
         tiltBinaryPath: fixture.tiltBinary,

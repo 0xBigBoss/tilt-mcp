@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
 /**
+ * Extra configuration passed to tool handlers
+ * Used for default values when not specified in args
+ */
+export interface TiltToolExtra {
+  tiltPort?: number;
+  tiltHost?: string;
+  tiltBinaryPath?: string;
+}
+
+/**
  * Base schema for all Tilt tool inputs
  * Validates port and host parameters
  */
@@ -8,10 +18,7 @@ export const TiltBaseInput = z.object({
   tiltPort: z.number().int().min(1).max(65535).optional(),
   tiltHost: z
     .string()
-    .regex(
-      /^([a-zA-Z0-9.-]+|\[[0-9a-fA-F:.]+\])$/,
-      'Invalid host format'
-    )
+    .regex(/^([a-zA-Z0-9.-]+|\[[0-9a-fA-F:.]+\])$/, 'Invalid host format')
     .optional(),
 });
 
@@ -27,7 +34,7 @@ export const ResourceNameSchema = z
   .max(253)
   .regex(
     /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/,
-    'Must be valid Kubernetes resource name'
+    'Must be valid Kubernetes resource name',
   );
 
 /**
@@ -36,10 +43,7 @@ export const ResourceNameSchema = z
  */
 export const LabelSchema = z
   .string()
-  .regex(
-    /^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$/,
-    'Invalid label format'
-  );
+  .regex(/^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$/, 'Invalid label format');
 
 /**
  * Port range schema - tuple of [start, end] ports
@@ -50,10 +54,7 @@ export const PortRangeSchema = z
     z.number().int().min(1).max(65535),
     z.number().int().min(1).max(65535),
   ])
-  .refine(
-    ([start, end]) => start <= end,
-    'Start port must be <= end port'
-  );
+  .refine(([start, end]) => start <= end, 'Start port must be <= end port');
 
 /**
  * Filter schema - safe characters only
@@ -63,10 +64,7 @@ export const PortRangeSchema = z
 export const FilterSchema = z
   .string()
   .max(256)
-  .regex(
-    /^[a-zA-Z0-9._=,\s-]*$/,
-    'Filter contains invalid characters'
-  );
+  .regex(/^[a-zA-Z0-9._=,\s-]*$/, 'Filter contains invalid characters');
 
 /**
  * Tiltfile args schema - safe arguments only
@@ -77,7 +75,7 @@ export const TiltfileArgsSchema = z.array(
   z
     .string()
     .max(256)
-    .regex(/^[a-zA-Z0-9._=/-]+$/, 'Invalid arg format')
+    .regex(/^[a-zA-Z0-9._=/-]+$/, 'Invalid arg format'),
 );
 
 /**
@@ -120,5 +118,37 @@ export const TiltDisableInput = TiltBaseInput.extend({
 });
 
 export const TiltArgsInput = TiltBaseInput.extend({
-  args: TiltfileArgsSchema,
+  args: TiltfileArgsSchema.optional().describe(
+    'Args to set. Required unless clear=true.',
+  ),
+  clear: z
+    .boolean()
+    .optional()
+    .describe('Clear all args. Required if args is not provided.'),
+});
+
+/**
+ * Validates TiltArgsInput to ensure either args or clear is provided.
+ * Use this for runtime validation - the schema itself allows optional fields
+ * because ZodEffects (from .refine()) doesn't work with tool().shape.
+ */
+export function validateTiltArgsInput(
+  data: z.infer<typeof TiltArgsInput>,
+): void {
+  if (data.clear !== true && (!data.args || data.args.length === 0)) {
+    throw new Error(
+      'Either args (non-empty) or clear=true must be provided. ' +
+        'Running tilt args without arguments opens an interactive editor.',
+    );
+  }
+}
+
+export const TiltWaitInput = TiltBaseInput.extend({
+  resources: z.array(ResourceNameSchema).optional(),
+  timeout: z.number().int().positive().max(600).optional(),
+  condition: z.string().optional().default('Ready'),
+});
+
+export const TiltDumpInput = TiltBaseInput.extend({
+  format: z.enum(['json', 'yaml']).optional().default('json'),
 });

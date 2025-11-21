@@ -1,18 +1,18 @@
 /**
- * tilt_status tool
+ * tilt_enable tool
  *
- * Gets overall Tilt session status
+ * Enables a Tilt resource
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
 import { TiltConnection } from '../tilt/connection.js';
-import { TiltStatusInput, type TiltToolExtra } from './schemas.js';
+import { TiltEnableInput, type TiltToolExtra } from './schemas.js';
 
-export const tiltStatus = tool(
-  'tilt_status',
-  'Get overall Tilt status and resource summary',
-  TiltStatusInput.shape,
+export const tiltEnable = tool(
+  'tilt_enable',
+  'Enable a disabled Tilt resource',
+  TiltEnableInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
     const port = args.tiltPort ?? extra.tiltPort ?? 10350;
@@ -26,21 +26,21 @@ export const tiltStatus = tool(
       binaryPath,
     });
 
-    const sessionActive = await connection.checkSession();
+    await connection.checkSession();
 
-    // Get resources using CLI client
+    // Enable resource using CLI client
     const client = new TiltCliClient({
       port,
       host,
       binaryPath,
     });
 
-    const resources = await client.getResources();
+    await client.enable(args.resourceName);
 
     const result = {
-      sessionActive,
-      resourceCount: resources.length,
-      resources,
+      success: true,
+      resourceName: args.resourceName,
+      message: `Resource '${args.resourceName}' enabled successfully`,
       connectionInfo: {
         port,
         host,

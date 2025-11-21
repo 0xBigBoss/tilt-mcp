@@ -11,7 +11,7 @@ describe('Server Integration', () => {
     const server = createServer();
     expect(server).toBeDefined();
   });
-  
+
   it('server has required properties', () => {
     const server = createServer();
     // Server should be an instance of the MCP Server class

@@ -9,15 +9,15 @@
     "test": "tests"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js",
+    "build": "bun build src/server.ts --outdir dist --target bun",
+    "dev": "bun --watch src/server.ts",
+    "start": "bun dist/server.js",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:integration": "bun test tests/integration",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests",
-    "lint:fix": "eslint src tests --fix"
+    "typecheck": "tsgo --noEmit",
+    "lint": "biome check src tests",
+    "lint:fix": "biome check --write src tests"
   },
   "keywords": [
     "mcp",
@@ -35,13 +35,10 @@
     "zod-to-json-schema": "^3.25.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.25",
+    "@biomejs/biome": "^2.3.6",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript/native-preview": "^7.0.0-dev.20251120.1",
     "bun-types": "^1.3.2",
-    "eslint": "^8.57.1",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }

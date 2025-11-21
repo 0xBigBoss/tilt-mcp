@@ -1,18 +1,21 @@
 /**
  * Tests for tilt_describe_resource tool
- * 
+ *
  * Tests detailed resource information retrieval
  */
 
-import { describe, it, expect, afterEach } from 'bun:test';
-import { createTiltCliFixture, type TiltCliFixture } from '../fixtures/tilt-cli-fixture.js';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { tiltDescribeResource } from '../../src/tools/describe.js';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.js';
 
 describe('tilt_describe_resource tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
-    fixtures.forEach(f => f.cleanup());
+    fixtures.forEach((f) => f.cleanup());
     fixtures.length = 0;
   });
 
@@ -23,32 +26,39 @@ describe('tilt_describe_resource tool', () => {
       metadata: {
         name: 'web-app',
         uid: 'abc-123',
-        creationTimestamp: '2024-01-01T00:00:00Z'
+        creationTimestamp: '2024-01-01T00:00:00Z',
       },
       status: {
         runtimeStatus: 'ok',
         buildHistory: [
-          { startTime: '2024-01-01T00:01:00Z', finishTime: '2024-01-01T00:01:30Z' }
+          {
+            startTime: '2024-01-01T00:01:00Z',
+            finishTime: '2024-01-01T00:01:30Z',
+          },
         ],
         k8sResourceInfo: {
           podName: 'web-app-pod',
-          podStatus: 'Running'
-        }
+          podStatus: 'Running',
+        },
       },
       spec: {
-        updateMode: 'auto'
-      }
+        updateMode: 'auto',
+      },
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourceDetail)
+      stdout: JSON.stringify(resourceDetail),
     });
     fixtures.push(fixture);
 
     const result = await tiltDescribeResource.handler(
-      { resourceName: 'web-app', tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      {
+        resourceName: 'web-app',
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -68,19 +78,23 @@ describe('tilt_describe_resource tool', () => {
       kind: 'UIResource',
       apiVersion: 'tilt.dev/v1alpha1',
       metadata: {
-        name: 'minimal-resource'
-      }
+        name: 'minimal-resource',
+      },
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourceDetail)
+      stdout: JSON.stringify(resourceDetail),
     });
     fixtures.push(fixture);
 
     const result = await tiltDescribeResource.handler(
-      { resourceName: 'minimal-resource', tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      {
+        resourceName: 'minimal-resource',
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -94,21 +108,25 @@ describe('tilt_describe_resource tool', () => {
 
     await expect(
       tiltDescribeResource.handler(
-        { resourceName: 'web-app', tiltPort: fixture.port, tiltHost: fixture.host },
-        { tiltBinaryPath: fixture.tiltBinary }
-      )
+        {
+          resourceName: 'web-app',
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+        { tiltBinaryPath: fixture.tiltBinary },
+      ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });
 
   it('uses default port and host when not provided', async () => {
     const resourceDetail = {
       kind: 'UIResource',
-      metadata: { name: 'test' }
+      metadata: { name: 'test' },
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourceDetail)
+      stdout: JSON.stringify(resourceDetail),
     });
     fixtures.push(fixture);
 
@@ -118,7 +136,7 @@ describe('tilt_describe_resource tool', () => {
         tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
-      }
+      },
     );
 
     const output = JSON.parse(result.content[0].text);

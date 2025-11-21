@@ -1,17 +1,17 @@
 /**
- * Tests for tilt_trigger tool
+ * Tests for tilt_wait tool
  *
- * Tests manual resource triggering
+ * Tests waiting for resources to be ready
  */
 
 import { afterEach, describe, expect, it } from 'bun:test';
-import { tiltTrigger } from '../../src/tools/trigger.js';
+import { tiltWait } from '../../src/tools/wait.js';
 import {
   createTiltCliFixture,
   type TiltCliFixture,
 } from '../fixtures/tilt-cli-fixture.js';
 
-describe('tilt_trigger tool', () => {
+describe('tilt_wait tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
@@ -19,16 +19,17 @@ describe('tilt_trigger tool', () => {
     fixtures.length = 0;
   });
 
-  it('triggers a resource successfully', async () => {
+  it('waits for resources successfully', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: 'triggered',
+      stdout: 'uiresource/web-app condition met',
     });
     fixtures.push(fixture);
 
-    const result = await tiltTrigger.handler(
+    const result = await tiltWait.handler(
       {
-        resourceName: 'web-app',
+        resources: ['web-app'],
+        timeout: 30,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
@@ -40,10 +41,27 @@ describe('tilt_trigger tool', () => {
 
     const output = JSON.parse(result.content[0].text);
     expect(output.success).toBe(true);
-    expect(output.resourceName).toBe('web-app');
-    expect(output.message).toContain('triggered');
-    expect(output.connectionInfo.port).toBe(fixture.port);
-    expect(output.connectionInfo.host).toBe(fixture.host);
+    expect(output.resources).toEqual(['web-app']);
+  });
+
+  it('waits for all resources when none specified', async () => {
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: 'all resources ready',
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltWait.handler(
+      {
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
+    );
+
+    expect(result.content).toHaveLength(1);
+    const output = JSON.parse(result.content[0].text);
+    expect(output.success).toBe(true);
   });
 
   it('throws error when Tilt is not running', async () => {
@@ -51,9 +69,9 @@ describe('tilt_trigger tool', () => {
     fixtures.push(fixture);
 
     await expect(
-      tiltTrigger.handler(
+      tiltWait.handler(
         {
-          resourceName: 'web-app',
+          resources: ['web-app'],
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
@@ -65,12 +83,12 @@ describe('tilt_trigger tool', () => {
   it('uses default port and host when not provided', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: 'triggered',
+      stdout: '',
     });
     fixtures.push(fixture);
 
-    const result = await tiltTrigger.handler(
-      { resourceName: 'web-app' },
+    const result = await tiltWait.handler(
+      { resources: ['test'] },
       {
         tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,

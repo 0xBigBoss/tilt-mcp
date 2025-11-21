@@ -1,18 +1,21 @@
 /**
  * Tests for tilt_status tool
- * 
+ *
  * Tests overall Tilt session status
  */
 
-import { describe, it, expect, afterEach } from 'bun:test';
-import { createTiltCliFixture, type TiltCliFixture } from '../fixtures/tilt-cli-fixture.js';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { tiltStatus } from '../../src/tools/status.js';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.js';
 
 describe('tilt_status tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
-    fixtures.forEach(f => f.cleanup());
+    fixtures.forEach((f) => f.cleanup());
     fixtures.length = 0;
   });
 
@@ -23,24 +26,24 @@ describe('tilt_status tool', () => {
       items: [
         {
           metadata: { name: 'web-app' },
-          status: { runtimeStatus: 'ok' }
+          status: { runtimeStatus: 'ok' },
         },
         {
           metadata: { name: 'api' },
-          status: { runtimeStatus: 'error' }
-        }
-      ]
+          status: { runtimeStatus: 'error' },
+        },
+      ],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltStatus.handler(
       { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -59,18 +62,18 @@ describe('tilt_status tool', () => {
     const resourcesData = {
       apiVersion: 'tilt.dev/v1alpha1',
       kind: 'UIResourceList',
-      items: []
+      items: [],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltStatus.handler(
       { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -86,8 +89,8 @@ describe('tilt_status tool', () => {
     await expect(
       tiltStatus.handler(
         { tiltPort: fixture.port, tiltHost: fixture.host },
-        { tiltBinaryPath: fixture.tiltBinary }
-      )
+        { tiltBinaryPath: fixture.tiltBinary },
+      ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });
 
@@ -95,23 +98,23 @@ describe('tilt_status tool', () => {
     const resourcesData = {
       apiVersion: 'tilt.dev/v1alpha1',
       kind: 'UIResourceList',
-      items: []
+      items: [],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltStatus.handler(
       {},
-      { 
+      {
         tiltBinaryPath: fixture.tiltBinary,
         // Override default with fixture values via env
         tiltPort: fixture.port,
         tiltHost: fixture.host,
-      }
+      },
     );
 
     const output = JSON.parse(result.content[0].text);

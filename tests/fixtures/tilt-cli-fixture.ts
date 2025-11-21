@@ -1,5 +1,12 @@
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import net, { AddressInfo } from 'node:net';
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import net, { type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -20,7 +27,10 @@ export interface TiltCliFixture {
   tiltBinary: string;
   statePath: string;
   eventsPath: string;
-  setBehavior: (behavior: SessionBehavior, overrides?: Partial<TiltFixtureState>) => void;
+  setBehavior: (
+    behavior: SessionBehavior,
+    overrides?: Partial<TiltFixtureState>,
+  ) => void;
   readEvents: () => TiltFixtureEvents;
   cleanup: () => void;
 }
@@ -128,6 +138,26 @@ function main() {
         process.stdout.write(state.sessionStdout ?? 'triggered');
         process.exit(0);
       }
+      if (args[0] === 'enable') {
+        process.stdout.write(state.sessionStdout ?? 'enabled');
+        process.exit(0);
+      }
+      if (args[0] === 'disable') {
+        process.stdout.write(state.sessionStdout ?? 'disabled');
+        process.exit(0);
+      }
+      if (args[0] === 'args') {
+        process.stdout.write(state.sessionStdout ?? '');
+        process.exit(0);
+      }
+      if (args[0] === 'wait') {
+        process.stdout.write(state.sessionStdout ?? '');
+        process.exit(0);
+      }
+      if (args[0] === 'dump' && args[1] === 'engine') {
+        process.stdout.write(state.sessionStdout ?? '{"engine":"state"}');
+        process.exit(0);
+      }
       // Fall through for unhandled commands
       break;
     default:
@@ -141,7 +171,11 @@ main();
 `;
 }
 
-function buildFixtureState(host: string, port: number, behavior: SessionBehavior): TiltFixtureState {
+function buildFixtureState(
+  host: string,
+  port: number,
+  behavior: SessionBehavior,
+): TiltFixtureState {
   return {
     expectedHost: host,
     expectedPort: port,
@@ -181,13 +215,15 @@ function findFreePort(host: string): Promise<number> {
   });
 }
 
-export async function createTiltCliFixture(options: {
-  host?: string;
-  behavior?: SessionBehavior;
-  hangMs?: number;
-  stdout?: string;
-  stderr?: string;
-} = {}): Promise<TiltCliFixture> {
+export async function createTiltCliFixture(
+  options: {
+    host?: string;
+    behavior?: SessionBehavior;
+    hangMs?: number;
+    stdout?: string;
+    stderr?: string;
+  } = {},
+): Promise<TiltCliFixture> {
   const host = options.host ?? '127.0.0.1';
   const port = await findFreePort(host);
   const behavior = options.behavior ?? 'healthy';
@@ -214,7 +250,10 @@ export async function createTiltCliFixture(options: {
   writeFileSync(tiltBinary, shimSource, { encoding: 'utf8' });
   chmodSync(tiltBinary, 0o755);
 
-  const setBehavior = (sessionBehavior: SessionBehavior, overrides: Partial<TiltFixtureState> = {}) => {
+  const setBehavior = (
+    sessionBehavior: SessionBehavior,
+    overrides: Partial<TiltFixtureState> = {},
+  ) => {
     currentState = { ...currentState, ...overrides, sessionBehavior };
     writeState(statePath, currentState);
   };

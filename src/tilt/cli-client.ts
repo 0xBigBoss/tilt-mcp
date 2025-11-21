@@ -1,6 +1,6 @@
 /**
  * TiltCliClient - Safe CLI command execution
- * 
+ *
  * Wraps Tilt CLI commands with:
  * - Safe execution (spawn with args[], no shell)
  * - Timeout handling (kill process, throw error)
@@ -9,23 +9,23 @@
  * - In-process log tailing (no shell pipes)
  */
 
-import { spawn } from 'child_process';
+import { spawn } from 'node:child_process';
 import {
+  TiltCommandTimeoutError,
   TiltNotInstalledError,
   TiltNotRunningError,
-  TiltResourceNotFoundError,
-  TiltCommandTimeoutError,
   TiltOutputExceededError,
+  TiltResourceNotFoundError,
 } from './errors.js';
 
 export interface ExecOptions {
-  timeout?: number;      // Max execution time (ms)
-  maxBuffer?: number;    // Max stdout/stderr size (bytes)
+  timeout?: number; // Max execution time (ms)
+  maxBuffer?: number; // Max stdout/stderr size (bytes)
 }
 
 export interface LogOptions {
   follow?: boolean;
-  tailLines?: number;  // Limit to N most recent lines
+  tailLines?: number; // Limit to N most recent lines
   level?: 'warn' | 'error';
   source?: 'all' | 'build' | 'runtime';
 }
@@ -86,7 +86,7 @@ export class TiltCliClient {
   /**
    * Execute tilt command safely with argument array
    * NO shell interpolation - prevents command injection
-   * 
+   *
    * @param args - Command arguments array
    * @param options - Execution options (timeout, maxBuffer)
    * @returns Command stdout
@@ -98,8 +98,10 @@ export class TiltCliClient {
    */
   async execTilt(
     args: readonly string[],
-    options: ExecOptions = {}
+    options: ExecOptions = {},
   ): Promise<string> {
+    // Use Infinity to skip timeout (for follow mode), not 0 which kills immediately
+    // Default to 30s if not provided
     const timeout = options.timeout ?? 30000;
     const maxBuffer = options.maxBuffer ?? 10 * 1024 * 1024; // 10MB
 
@@ -113,15 +115,21 @@ export class TiltCliClient {
       let stderr = '';
       let killed = false;
 
-      const timer = setTimeout(() => {
-        killed = true;
-        proc.kill('SIGTERM');
-      }, timeout);
+      // Only set timeout if not Infinity (skip for follow mode)
+      const timer =
+        timeout !== Infinity
+          ? setTimeout(() => {
+              killed = true;
+              proc.kill('SIGTERM');
+            }, timeout)
+          : undefined;
 
       proc.stdout?.on('data', (chunk: Buffer) => {
         stdout += chunk.toString();
         if (stdout.length > maxBuffer) {
-          clearTimeout(timer);
+          if (timer !== undefined) {
+            clearTimeout(timer);
+          }
           killed = true;
           proc.kill('SIGTERM');
           reject(new TiltOutputExceededError(maxBuffer));
@@ -133,7 +141,9 @@ export class TiltCliClient {
       });
 
       proc.on('error', (error: NodeJS.ErrnoException) => {
-        clearTimeout(timer);
+        if (timer !== undefined) {
+          clearTimeout(timer);
+        }
         if (error.code === 'ENOENT') {
           reject(new TiltNotInstalledError());
         } else {
@@ -142,7 +152,9 @@ export class TiltCliClient {
       });
 
       proc.on('close', (code: number | null) => {
-        clearTimeout(timer);
+        if (timer !== undefined) {
+          clearTimeout(timer);
+        }
 
         if (killed) {
           reject(new TiltCommandTimeoutError(args.join(' '), timeout));
@@ -182,10 +194,14 @@ export class TiltCliClient {
    */
   async getResources(labels?: string[]): Promise<Resource[]> {
     const args = [
-      'get', 'uiresources',
-      '-o', 'json',
-      '--port', this.port.toString(),
-      '--host', this.host,
+      'get',
+      'uiresources',
+      '-o',
+      'json',
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
     ];
 
     if (labels && labels.length > 0) {
@@ -205,10 +221,14 @@ export class TiltCliClient {
    */
   async describeResource(resourceName: string): Promise<ResourceDetail> {
     const args = [
-      'describe', `uiresource/${resourceName}`,
-      '-o', 'json',
-      '--port', this.port.toString(),
-      '--host', this.host,
+      'describe',
+      `uiresource/${resourceName}`,
+      '-o',
+      'json',
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
     ];
 
     const output = await this.execTilt(args);
@@ -217,22 +237,31 @@ export class TiltCliClient {
 
   /**
    * Get logs for a resource with optional filtering and tailing
-   * 
+   *
    * @param resourceName - Name of the resource
-   * @param options - Log options (level, source, tailLines)
+   * @param options - Log options (level, source, tailLines, follow)
    * @returns Log output
    */
   async getLogs(
     resourceName: string,
-    options: LogOptions = {}
+    options: LogOptions = {},
   ): Promise<string> {
-    const args = ['logs', resourceName, '--port', this.port.toString(), '--host', this.host];
+    const args = [
+      'logs',
+      resourceName,
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
+    ];
 
     if (options.level) args.push('--level', options.level);
     if (options.source) args.push('--source', options.source);
 
+    // For follow mode, use Infinity timeout so process doesn't get killed
+    // For non-follow mode, use default 30s timeout
     const output = await this.execTilt(args, {
-      timeout: options.follow ? 0 : 30000, // No timeout for follow
+      timeout: options.follow ? Infinity : 30000,
       maxBuffer: 50 * 1024 * 1024, // 50MB for logs
     });
 
@@ -246,18 +275,140 @@ export class TiltCliClient {
 
   /**
    * Trigger a manual update for a resource
-   * 
+   *
    * @param resourceName - Name of the resource to trigger
    */
   async trigger(resourceName: string): Promise<void> {
     const args = [
       'trigger',
       resourceName,
-      '--port', this.port.toString(),
-      '--host', this.host,
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
     ];
 
     await this.execTilt(args);
+  }
+
+  /**
+   * Enable a resource
+   *
+   * @param resourceName - Name of the resource to enable
+   */
+  async enable(resourceName: string): Promise<void> {
+    const args = [
+      'enable',
+      resourceName,
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
+    ];
+
+    await this.execTilt(args);
+  }
+
+  /**
+   * Disable a resource
+   *
+   * @param resourceName - Name of the resource to disable
+   */
+  async disable(resourceName: string): Promise<void> {
+    const args = [
+      'disable',
+      resourceName,
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
+    ];
+
+    await this.execTilt(args);
+  }
+
+  /**
+   * Set or clear Tiltfile args
+   *
+   * @param tiltfileArgs - Optional array of args to set
+   * @param clear - If true, clear all args
+   */
+  async setArgs(tiltfileArgs?: string[], clear?: boolean): Promise<void> {
+    // CRITICAL: Running `tilt args` without arguments opens an interactive editor
+    // which would hang the process. We must have either --clear or args to set.
+    if (!clear && (!tiltfileArgs || tiltfileArgs.length === 0)) {
+      throw new Error(
+        'setArgs requires either clear=true or at least one argument. ' +
+          'Running tilt args without arguments opens an interactive editor.',
+      );
+    }
+
+    const args = ['args', '--port', this.port.toString(), '--host', this.host];
+
+    if (clear) {
+      args.push('--clear');
+    } else if (tiltfileArgs && tiltfileArgs.length > 0) {
+      args.push('--', ...tiltfileArgs);
+    }
+
+    await this.execTilt(args);
+  }
+
+  /**
+   * Wait for resources to reach ready state
+   *
+   * @param resources - Optional array of resource names to wait for
+   * @param timeout - Timeout in seconds
+   * @param condition - Condition to wait for (default: Ready)
+   * @returns Command output
+   */
+  async wait(
+    resources?: string[],
+    timeout?: number,
+    condition: string = 'Ready',
+  ): Promise<string> {
+    const args = [
+      'wait',
+      '--for',
+      `condition=${condition}`,
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
+    ];
+
+    if (timeout !== undefined) {
+      args.push('--timeout', `${timeout}s`);
+    }
+
+    if (resources && resources.length > 0) {
+      // Tilt wait requires uiresource/name format
+      args.push(...resources.map((r) => `uiresource/${r}`));
+    } else {
+      args.push('--all');
+    }
+
+    // Use longer timeout for wait command
+    const execTimeout = timeout ? (timeout + 5) * 1000 : 120000;
+    return this.execTilt(args, { timeout: execTimeout });
+  }
+
+  /**
+   * Dump Tilt engine state
+   *
+   * @returns Engine state as string (JSON)
+   */
+  async dumpEngine(): Promise<string> {
+    const args = [
+      'dump',
+      'engine',
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
+    ];
+
+    return this.execTilt(args);
   }
 
   /**
@@ -281,6 +432,6 @@ export class TiltCliClient {
     const startIndex = Math.max(0, effectiveLines.length - count);
     const result = effectiveLines.slice(startIndex).join('\n');
 
-    return hasTrailingNewline ? result + '\n' : result;
+    return hasTrailingNewline ? `${result}\n` : result;
   }
 }

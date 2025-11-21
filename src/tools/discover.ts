@@ -1,12 +1,12 @@
 /**
  * tilt_discover tool
- * 
+ *
  * Discovers running Tilt instances by scanning ports
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
-import { TiltDiscoverInput } from './schemas.js';
 import { TiltConnection } from '../tilt/connection.js';
+import { TiltDiscoverInput, type TiltToolExtra } from './schemas.js';
 
 interface DiscoveredInstance {
   host: string;
@@ -19,11 +19,12 @@ export const tiltDiscover = tool(
   'tilt_discover',
   'Discover running Tilt instances by scanning common ports',
   TiltDiscoverInput.shape,
-  async (args, extra) => {
+  async (args, _extra) => {
+    const extra = (_extra ?? {}) as TiltToolExtra;
     const portRange = args.portRange || [10350, 10354];
     const [startPort, endPort] = portRange;
-    const host = (extra as any)?.tiltHost || 'localhost';
-    const binaryPath = (extra as any)?.tiltBinaryPath;
+    const host = extra.tiltHost ?? 'localhost';
+    const binaryPath = extra.tiltBinaryPath;
 
     const discovered: DiscoveredInstance[] = [];
 
@@ -39,17 +40,14 @@ export const tiltDiscover = tool(
 
       try {
         await connection.checkSession();
-        
+
         // Session is active
         discovered.push({
           host,
           port,
           sessionActive: true,
         });
-      } catch (error) {
-        // Skip this port - no Tilt instance or error
-        continue;
-      }
+      } catch (_error) {}
     }
 
     return {
@@ -60,5 +58,5 @@ export const tiltDiscover = tool(
         },
       ],
     };
-  }
+  },
 );

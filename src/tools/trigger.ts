@@ -1,22 +1,23 @@
 /**
  * tilt_trigger tool
- * 
+ *
  * Manually triggers a resource update
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
-import { TiltTriggerInput } from './schemas.js';
-import { TiltConnection } from '../tilt/connection.js';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { TiltConnection } from '../tilt/connection.js';
+import { type TiltToolExtra, TiltTriggerInput } from './schemas.js';
 
 export const tiltTrigger = tool(
   'tilt_trigger',
   'Manually trigger a resource update',
   TiltTriggerInput.shape,
-  async (args, extra) => {
-    const port = args.tiltPort ?? (extra as any)?.tiltPort ?? 10350;
-    const host = args.tiltHost ?? (extra as any)?.tiltHost ?? 'localhost';
-    const binaryPath = (extra as any)?.tiltBinaryPath;
+  async (args, _extra) => {
+    const extra = (_extra ?? {}) as TiltToolExtra;
+    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
+    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
     const connection = new TiltConnection({
@@ -54,5 +55,5 @@ export const tiltTrigger = tool(
         },
       ],
     };
-  }
+  },
 );

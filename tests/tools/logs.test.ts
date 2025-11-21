@@ -1,18 +1,21 @@
 /**
  * Tests for tilt_logs tool
- * 
+ *
  * Tests log retrieval with filtering and tailing
  */
 
-import { describe, it, expect, afterEach } from 'bun:test';
-import { createTiltCliFixture, type TiltCliFixture } from '../fixtures/tilt-cli-fixture.js';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { tiltLogs } from '../../src/tools/logs.js';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.js';
 
 describe('tilt_logs tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
-    fixtures.forEach(f => f.cleanup());
+    fixtures.forEach((f) => f.cleanup());
     fixtures.length = 0;
   });
 
@@ -21,13 +24,17 @@ describe('tilt_logs tool', () => {
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: logOutput
+      stdout: logOutput,
     });
     fixtures.push(fixture);
 
     const result = await tiltLogs.handler(
-      { resourceName: 'web-app', tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      {
+        resourceName: 'web-app',
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -45,13 +52,18 @@ describe('tilt_logs tool', () => {
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: logOutput
+      stdout: logOutput,
     });
     fixtures.push(fixture);
 
     const result = await tiltLogs.handler(
-      { resourceName: 'web-app', tailLines: 2, tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      {
+        resourceName: 'web-app',
+        tailLines: 2,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -62,19 +74,19 @@ describe('tilt_logs tool', () => {
   it('includes filter options in response', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: 'error log\n'
+      stdout: 'error log\n',
     });
     fixtures.push(fixture);
 
     const result = await tiltLogs.handler(
-      { 
+      {
         resourceName: 'web-app',
         level: 'error',
         source: 'runtime',
         tiltPort: fixture.port,
-        tiltHost: fixture.host
+        tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -87,13 +99,17 @@ describe('tilt_logs tool', () => {
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: logOutput
+      stdout: logOutput,
     });
     fixtures.push(fixture);
 
     const result = await tiltLogs.handler(
-      { resourceName: 'web-app', tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      {
+        resourceName: 'web-app',
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -106,16 +122,20 @@ describe('tilt_logs tool', () => {
 
     await expect(
       tiltLogs.handler(
-        { resourceName: 'web-app', tiltPort: fixture.port, tiltHost: fixture.host },
-        { tiltBinaryPath: fixture.tiltBinary }
-      )
+        {
+          resourceName: 'web-app',
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+        { tiltBinaryPath: fixture.tiltBinary },
+      ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });
 
   it('uses default port and host when not provided', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: 'test logs\n'
+      stdout: 'test logs\n',
     });
     fixtures.push(fixture);
 
@@ -125,7 +145,7 @@ describe('tilt_logs tool', () => {
         tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
-      }
+      },
     );
 
     const output = JSON.parse(result.content[0].text);

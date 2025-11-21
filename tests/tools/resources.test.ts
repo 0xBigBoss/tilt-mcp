@@ -1,18 +1,21 @@
 /**
  * Tests for tilt_get_resources tool
- * 
+ *
  * Tests resource listing with optional filtering
  */
 
-import { describe, it, expect, afterEach } from 'bun:test';
-import { createTiltCliFixture, type TiltCliFixture } from '../fixtures/tilt-cli-fixture.js';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { tiltGetResources } from '../../src/tools/resources.js';
+import {
+  createTiltCliFixture,
+  type TiltCliFixture,
+} from '../fixtures/tilt-cli-fixture.js';
 
 describe('tilt_get_resources tool', () => {
   const fixtures: TiltCliFixture[] = [];
 
   afterEach(() => {
-    fixtures.forEach(f => f.cleanup());
+    fixtures.forEach((f) => f.cleanup());
     fixtures.length = 0;
   });
 
@@ -23,28 +26,28 @@ describe('tilt_get_resources tool', () => {
       items: [
         {
           metadata: { name: 'web-app' },
-          status: { runtimeStatus: 'ok' }
+          status: { runtimeStatus: 'ok' },
         },
         {
           metadata: { name: 'api' },
-          status: { runtimeStatus: 'error' }
+          status: { runtimeStatus: 'error' },
         },
         {
           metadata: { name: 'db' },
-          status: { runtimeStatus: 'pending' }
-        }
-      ]
+          status: { runtimeStatus: 'pending' },
+        },
+      ],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
       { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -64,28 +67,28 @@ describe('tilt_get_resources tool', () => {
       items: [
         {
           metadata: { name: 'web-app' },
-          status: { runtimeStatus: 'ok' }
+          status: { runtimeStatus: 'ok' },
         },
         {
           metadata: { name: 'api' },
-          status: { runtimeStatus: 'error' }
-        }
-      ]
+          status: { runtimeStatus: 'error' },
+        },
+      ],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { 
-        tiltPort: fixture.port, 
+      {
+        tiltPort: fixture.port,
         tiltHost: fixture.host,
-        filter: 'web'
+        filter: 'web',
       },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -100,37 +103,42 @@ describe('tilt_get_resources tool', () => {
       items: [
         {
           metadata: { name: 'web-app' },
-          status: { runtimeStatus: 'ok' }
+          status: { runtimeStatus: 'ok' },
         },
         {
           metadata: { name: 'api' },
-          status: { runtimeStatus: 'error' }
+          status: { runtimeStatus: 'error' },
         },
         {
           metadata: { name: 'worker' },
-          status: { runtimeStatus: 'error' }
-        }
-      ]
+          status: { runtimeStatus: 'error' },
+        },
+      ],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { 
-        tiltPort: fixture.port, 
+      {
+        tiltPort: fixture.port,
         tiltHost: fixture.host,
-        filter: 'error'
+        filter: 'error',
       },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
     expect(output).toHaveLength(2);
-    expect(output.every((r: any) => r.status.runtimeStatus === 'error')).toBe(true);
+    expect(
+      output.every(
+        (r: { status: { runtimeStatus: string } }) =>
+          r.status.runtimeStatus === 'error',
+      ),
+    ).toBe(true);
   });
 
   it('returns empty array when no resources match filter', async () => {
@@ -140,24 +148,24 @@ describe('tilt_get_resources tool', () => {
       items: [
         {
           metadata: { name: 'web-app' },
-          status: { runtimeStatus: 'ok' }
-        }
-      ]
+          status: { runtimeStatus: 'ok' },
+        },
+      ],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { 
-        tiltPort: fixture.port, 
+      {
+        tiltPort: fixture.port,
         tiltHost: fixture.host,
-        filter: 'nonexistent'
+        filter: 'nonexistent',
       },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -168,18 +176,18 @@ describe('tilt_get_resources tool', () => {
     const resourcesData = {
       apiVersion: 'tilt.dev/v1alpha1',
       kind: 'UIResourceList',
-      items: []
+      items: [],
     };
 
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
-      stdout: JSON.stringify(resourcesData)
+      stdout: JSON.stringify(resourcesData),
     });
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
       { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary }
+      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -193,8 +201,8 @@ describe('tilt_get_resources tool', () => {
     await expect(
       tiltGetResources.handler(
         { tiltPort: fixture.port, tiltHost: fixture.host },
-        { tiltBinaryPath: fixture.tiltBinary }
-      )
+        { tiltBinaryPath: fixture.tiltBinary },
+      ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });
 });

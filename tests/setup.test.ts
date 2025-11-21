@@ -1,7 +1,6 @@
 /**
  * Smoke test to verify project setup is correct
  */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -17,47 +16,45 @@ describe('Project Setup', () => {
     expect(existsSync(pkgPath)).toBe(true);
 
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-    
+
     // Must be ES module
     expect(pkg.type).toBe('module');
-    
+
     // Required scripts
     expect(pkg.scripts).toBeDefined();
-    expect(pkg.scripts.build).toBe('tsc');
-    expect(pkg.scripts.dev).toBe('tsx watch src/server.ts');
-    expect(pkg.scripts.start).toBe('node dist/server.js');
+    expect(pkg.scripts.build).toBe(
+      'bun build src/server.ts --outdir dist --target bun',
+    );
+    expect(pkg.scripts.dev).toBe('bun --watch src/server.ts');
+    expect(pkg.scripts.start).toBe('bun dist/server.js');
     expect(pkg.scripts.test).toBe('bun test');
     expect(pkg.scripts['test:watch']).toBe('bun test --watch');
     expect(pkg.scripts['test:integration']).toBe('bun test tests/integration');
-    expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
-    expect(pkg.scripts.lint).toBe('eslint src tests');
-    expect(pkg.scripts['lint:fix']).toBe('eslint src tests --fix');
-    
+    expect(pkg.scripts.typecheck).toBe('tsgo --noEmit');
+    expect(pkg.scripts.lint).toBe('biome check src tests');
+    expect(pkg.scripts['lint:fix']).toBe('biome check --write src tests');
+
     // Required dependencies
     expect(pkg.dependencies).toBeDefined();
     expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeDefined();
     expect(pkg.dependencies['@anthropic-ai/claude-agent-sdk']).toBeDefined();
-    expect(pkg.dependencies['ws']).toBeDefined();
-    expect(pkg.dependencies['zod']).toBeDefined();
-    
-    // Required dev dependencies
+    expect(pkg.dependencies.ws).toBeDefined();
+    expect(pkg.dependencies.zod).toBeDefined();
+
+    // Required dev dependencies (Bun-first, no tsx or @types/node)
     expect(pkg.devDependencies).toBeDefined();
-    expect(pkg.devDependencies['@types/node']).toBeDefined();
     expect(pkg.devDependencies['@types/ws']).toBeDefined();
-    expect(pkg.devDependencies['typescript']).toBeDefined();
-    expect(pkg.devDependencies['tsx']).toBeDefined();
+    expect(pkg.devDependencies.typescript).toBeDefined();
     expect(pkg.devDependencies['bun-types']).toBeDefined();
-    expect(pkg.devDependencies['eslint']).toBeDefined();
-    expect(pkg.devDependencies['@typescript-eslint/eslint-plugin']).toBeDefined();
-    expect(pkg.devDependencies['@typescript-eslint/parser']).toBeDefined();
+    expect(pkg.devDependencies['@biomejs/biome']).toBeDefined();
   });
 
   it('tsconfig.json exists with strict configuration', () => {
     const tsconfigPath = join(projectRoot, 'tsconfig.json');
     expect(existsSync(tsconfigPath)).toBe(true);
-    
+
     const tsconfig = JSON.parse(readFileSync(tsconfigPath, 'utf-8'));
-    
+
     expect(tsconfig.compilerOptions).toBeDefined();
     expect(tsconfig.compilerOptions.target).toBe('ES2022');
     expect(tsconfig.compilerOptions.module).toBe('ES2022');
@@ -66,19 +63,18 @@ describe('Project Setup', () => {
     expect(tsconfig.compilerOptions.rootDir).toBe('./src');
   });
 
-  it('eslint configuration exists', () => {
-    const eslintPath = join(projectRoot, '.eslintrc.json');
-    expect(existsSync(eslintPath)).toBe(true);
-    
-    const eslintConfig = JSON.parse(readFileSync(eslintPath, 'utf-8'));
-    expect(eslintConfig.parser).toBe('@typescript-eslint/parser');
-    expect(eslintConfig.plugins).toContain('@typescript-eslint');
+  it('biome configuration exists', () => {
+    const biomePath = join(projectRoot, 'biome.json');
+    expect(existsSync(biomePath)).toBe(true);
+
+    const biomeConfig = JSON.parse(readFileSync(biomePath, 'utf-8'));
+    expect(biomeConfig.$schema).toContain('biomejs.dev');
   });
 
   it('gitignore exists with required entries', () => {
     const gitignorePath = join(projectRoot, '.gitignore');
     expect(existsSync(gitignorePath)).toBe(true);
-    
+
     const gitignore = readFileSync(gitignorePath, 'utf-8');
     expect(gitignore).toContain('node_modules');
     expect(gitignore).toContain('dist');

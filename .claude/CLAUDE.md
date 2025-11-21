@@ -18,10 +18,18 @@ This project provides Model Context Protocol (MCP) tools for the Tilt CLI, enabl
 ### Technology Stack
 
 - **Language**: TypeScript
+- **Runtime**: Bun 1.3+ (all environments: development, build, production)
+- **Package Manager**: Bun (`bun install`, lockfile: `bun.lock`)
+- **Test Runner**: Bun test (`bun test`)
+- **Bundler**: Bun (`bun build`)
+- **Type Checker**: `tsgo` (`@typescript/native-preview`) - standard `tsc` OOMs on complex types from zod-to-json-schema
+- **Linter**: Biome (`@biomejs/biome`) - ESLint also OOMs due to typescript-eslint type checking
 - **MCP SDK**: `@modelcontextprotocol/sdk`
 - **Agent SDK**: `@anthropic-ai/claude-agent-sdk`
 - **Schema Validation**: Zod
 - **Target CLI**: Tilt
+
+> **Note**: This project uses Bun exclusively. Do not use Node.js, npm, tsx, or other Node-based tools.
 
 ### Architecture
 
@@ -93,6 +101,7 @@ Key capabilities:
 4. **Implement tool handler** to execute Tilt commands
 5. **Verify with tests** and manual validation
 6. **Document usage** and add examples
+7. **Use Bun tooling**: `bun install`, `bun test`, and `bun run` for scripts
 
 ## Project Structure
 
@@ -108,6 +117,7 @@ tilt-mcp/
 │   ├── resources/         # MCP resource implementations
 │   └── server.ts          # MCP server setup
 ├── tests/                 # Test suite
+├── bun.lock               # Bun lockfile (package manager)
 └── package.json
 ```
 

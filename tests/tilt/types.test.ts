@@ -13,11 +13,11 @@ const fixturesDir = join(__dirname, '..', 'fixtures');
 
 // Import types
 import type {
-  UIResourceList,
-  UIResource,
+  LogLine,
   RuntimeStatus,
   TiltSession,
-  LogLine,
+  UIResource,
+  UIResourceList,
 } from '../../src/tilt/types.ts';
 
 describe('Tilt Types', () => {
@@ -25,7 +25,7 @@ describe('Tilt Types', () => {
     it('parses real Tilt uiresources output', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
 
@@ -40,7 +40,7 @@ describe('Tilt Types', () => {
     it('has correct structure for real resource', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const resource = data.items[0];
@@ -58,7 +58,7 @@ describe('Tilt Types', () => {
     it('contains K8s-style metadata fields', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const metadata = data.items[0].metadata;
@@ -86,7 +86,7 @@ describe('Tilt Types', () => {
     it('contains status information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const status = data.items[0].status;
@@ -94,7 +94,7 @@ describe('Tilt Types', () => {
       // Required fields
       expect(status.runtimeStatus).toBeDefined();
       expect(['ok', 'error', 'warning', 'pending', 'not_applicable']).toContain(
-        status.runtimeStatus
+        status.runtimeStatus,
       );
 
       // Optional but common fields
@@ -114,21 +114,21 @@ describe('Tilt Types', () => {
     it('contains build history information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const resource = data.items.find((r) => r.status.buildHistory);
-      
+
       if (!resource) {
         throw new Error('No resource with buildHistory found');
       }
 
-      const build = resource.status.buildHistory![0];
+      const build = resource.status.buildHistory?.[0];
 
       // Build record fields
       expect(build.startTime).toBeDefined();
       expect(typeof build.startTime).toBe('string');
-      
+
       if (build.finishTime) {
         expect(typeof build.finishTime).toBe('string');
       }
@@ -142,23 +142,26 @@ describe('Tilt Types', () => {
     it('contains enable/disable state', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const resource = data.items.find((r) => r.status.disableStatus);
-      
+
       if (!resource) {
         throw new Error('No resource with disableStatus found');
       }
 
-      const disableStatus = resource.status.disableStatus!;
+      if (!resource.status.disableStatus) {
+        throw new Error('disableStatus is undefined');
+      }
+      const disableStatus = resource.status.disableStatus;
 
       // DisableStatus fields
       expect(disableStatus.state).toBeDefined();
       expect(['Enabled', 'Disabled']).toContain(disableStatus.state);
       expect(typeof disableStatus.enabledCount).toBe('number');
       expect(typeof disableStatus.disabledCount).toBe('number');
-      
+
       if (disableStatus.sources) {
         expect(Array.isArray(disableStatus.sources)).toBe(true);
       }
@@ -169,21 +172,21 @@ describe('Tilt Types', () => {
     it('contains endpoint information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const resource = data.items.find((r) => r.status.endpointLinks);
-      
+
       if (!resource) {
         throw new Error('No resource with endpointLinks found');
       }
 
-      const endpoint = resource.status.endpointLinks![0];
+      const endpoint = resource.status.endpointLinks?.[0];
 
       // EndpointLink fields
       expect(endpoint.url).toBeDefined();
       expect(typeof endpoint.url).toBe('string');
-      
+
       // name is optional
       if (endpoint.name) {
         expect(typeof endpoint.name).toBe('string');
@@ -195,16 +198,16 @@ describe('Tilt Types', () => {
     it('contains spec type information', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const resource = data.items.find((r) => r.status.specs);
-      
+
       if (!resource) {
         throw new Error('No resource with specs found');
       }
 
-      const spec = resource.status.specs![0];
+      const spec = resource.status.specs?.[0];
 
       // ResourceSpec fields
       expect(spec.type).toBeDefined();
@@ -217,23 +220,23 @@ describe('Tilt Types', () => {
     it('contains K8s-style condition', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
       const resource = data.items.find((r) => r.status.conditions);
-      
+
       if (!resource) {
         throw new Error('No resource with conditions found');
       }
 
-      const condition = resource.status.conditions![0];
+      const condition = resource.status.conditions?.[0];
 
       // Condition fields
       expect(condition.type).toBeDefined();
       expect(condition.status).toBeDefined();
       expect(['True', 'False', 'Unknown']).toContain(condition.status);
       expect(condition.lastTransitionTime).toBeDefined();
-      
+
       // Optional fields
       if (condition.reason) {
         expect(typeof condition.reason).toBe('string');
@@ -256,9 +259,13 @@ describe('Tilt Types', () => {
       ];
 
       validStatuses.forEach((status) => {
-        expect(['ok', 'error', 'warning', 'pending', 'not_applicable']).toContain(
-          status
-        );
+        expect([
+          'ok',
+          'error',
+          'warning',
+          'pending',
+          'not_applicable',
+        ]).toContain(status);
       });
     });
 
@@ -285,7 +292,7 @@ describe('Tilt Types', () => {
     it('types work with real Tilt CLI output', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
 
@@ -297,13 +304,19 @@ describe('Tilt Types', () => {
       expect(typeof resource.status.runtimeStatus).toBe('string');
 
       // Optional fields
-      if (resource.status.buildHistory && resource.status.buildHistory.length > 0) {
+      if (
+        resource.status.buildHistory &&
+        resource.status.buildHistory.length > 0
+      ) {
         const build = resource.status.buildHistory[0];
         expect(typeof build.startTime).toBe('string');
       }
 
       // Endpoint links
-      if (resource.status.endpointLinks && resource.status.endpointLinks.length > 0) {
+      if (
+        resource.status.endpointLinks &&
+        resource.status.endpointLinks.length > 0
+      ) {
         const endpoint = resource.status.endpointLinks[0];
         expect(typeof endpoint.url).toBe('string');
       }
@@ -318,16 +331,16 @@ describe('Tilt Types', () => {
     it('UIResourceList can be filtered by status', () => {
       const rawJson = readFileSync(
         join(fixturesDir, 'get-uiresources-sample.json'),
-        'utf-8'
+        'utf-8',
       );
       const data = JSON.parse(rawJson) as UIResourceList;
 
       // Type-safe filtering operations
       const okResources = data.items.filter(
-        (r) => r.status.runtimeStatus === 'ok'
+        (r) => r.status.runtimeStatus === 'ok',
       );
       const resourcesWithEndpoints = data.items.filter(
-        (r) => r.status.endpointLinks && r.status.endpointLinks.length > 0
+        (r) => r.status.endpointLinks && r.status.endpointLinks.length > 0,
       );
 
       expect(okResources.length).toBeGreaterThanOrEqual(0);

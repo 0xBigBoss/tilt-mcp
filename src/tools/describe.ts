@@ -1,22 +1,23 @@
 /**
  * tilt_describe_resource tool
- * 
+ *
  * Gets detailed information about a specific resource
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
-import { TiltDescribeResourceInput } from './schemas.js';
-import { TiltConnection } from '../tilt/connection.js';
 import { TiltCliClient } from '../tilt/cli-client.js';
+import { TiltConnection } from '../tilt/connection.js';
+import { TiltDescribeResourceInput, type TiltToolExtra } from './schemas.js';
 
 export const tiltDescribeResource = tool(
   'tilt_describe_resource',
   'Get detailed information about a specific resource',
   TiltDescribeResourceInput.shape,
-  async (args, extra) => {
-    const port = args.tiltPort ?? (extra as any)?.tiltPort ?? 10350;
-    const host = args.tiltHost ?? (extra as any)?.tiltHost ?? 'localhost';
-    const binaryPath = (extra as any)?.tiltBinaryPath;
+  async (args, _extra) => {
+    const extra = (_extra ?? {}) as TiltToolExtra;
+    const port = args.tiltPort ?? extra.tiltPort ?? 10350;
+    const host = args.tiltHost ?? extra.tiltHost ?? 'localhost';
+    const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
     const connection = new TiltConnection({
@@ -52,5 +53,5 @@ export const tiltDescribeResource = tool(
         },
       ],
     };
-  }
+  },
 );

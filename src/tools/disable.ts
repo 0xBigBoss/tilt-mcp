@@ -1,18 +1,18 @@
 /**
- * tilt_status tool
+ * tilt_disable tool
  *
- * Gets overall Tilt session status
+ * Disables a Tilt resource
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
 import { TiltConnection } from '../tilt/connection.js';
-import { TiltStatusInput, type TiltToolExtra } from './schemas.js';
+import { TiltDisableInput, type TiltToolExtra } from './schemas.js';
 
-export const tiltStatus = tool(
-  'tilt_status',
-  'Get overall Tilt status and resource summary',
-  TiltStatusInput.shape,
+export const tiltDisable = tool(
+  'tilt_disable',
+  'Disable a Tilt resource',
+  TiltDisableInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
     const port = args.tiltPort ?? extra.tiltPort ?? 10350;
@@ -26,21 +26,21 @@ export const tiltStatus = tool(
       binaryPath,
     });
 
-    const sessionActive = await connection.checkSession();
+    await connection.checkSession();
 
-    // Get resources using CLI client
+    // Disable resource using CLI client
     const client = new TiltCliClient({
       port,
       host,
       binaryPath,
     });
 
-    const resources = await client.getResources();
+    await client.disable(args.resourceName);
 
     const result = {
-      sessionActive,
-      resourceCount: resources.length,
-      resources,
+      success: true,
+      resourceName: args.resourceName,
+      message: `Resource '${args.resourceName}' disabled successfully`,
       connectionInfo: {
         port,
         host,
