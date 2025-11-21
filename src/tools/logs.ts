@@ -19,8 +19,14 @@ export const tiltLogs = tool(
   TiltLogsInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
-    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
+    const port =
+      (args as { tiltPort?: number }).tiltPort ??
+      extra.tiltPort ??
+      getDefaultTiltPort();
+    const host =
+      (args as { tiltHost?: string }).tiltHost ??
+      extra.tiltHost ??
+      getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
@@ -38,6 +44,18 @@ export const tiltLogs = tool(
       host,
       binaryPath,
     });
+
+    // Validate resource exists before attempting to get logs
+    const resources = await client.getResources();
+    const resourceExists = resources.some(
+      (r) => r.metadata.name === args.resourceName,
+    );
+
+    if (!resourceExists) {
+      throw new Error(
+        `Resource '${args.resourceName}' not found. Use tilt_get_resources to list available resources.`,
+      );
+    }
 
     const logOptions = {
       // Note: follow mode disabled - MCP tools must return a response

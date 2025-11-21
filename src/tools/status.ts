@@ -18,8 +18,14 @@ export const tiltStatus = tool(
   TiltStatusInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
-    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
+    const port =
+      (args as { tiltPort?: number }).tiltPort ??
+      extra.tiltPort ??
+      getDefaultTiltPort();
+    const host =
+      (args as { tiltHost?: string }).tiltHost ??
+      extra.tiltHost ??
+      getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
