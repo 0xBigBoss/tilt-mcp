@@ -117,9 +117,31 @@ export const TiltDescribeResourceInput = TiltBaseInput.extend({
 export const TiltLogsInput = TiltBaseInput.extend({
   resourceName: ResourceNameSchema,
   // Note: 'follow' mode removed - MCP tools must return a response and cannot stream
-  tailLines: z.number().int().positive().max(10000).optional().default(100),
-  level: z.enum(['warn', 'error']).optional(),
-  source: z.enum(['all', 'build', 'runtime']).optional(),
+  tailLines: z
+    .number()
+    .int()
+    .positive()
+    .max(10000)
+    .optional()
+    .default(100)
+    .describe(
+      'Number of most recent log lines to return (max 10000, default 100)',
+    ),
+  level: z
+    .enum(['warn', 'error'])
+    .optional()
+    .describe(
+      'Filter Tilt internal messages by severity. NOTE: This filters Tilt system messages ' +
+        '(e.g., build warnings, resource errors), NOT application log content. ' +
+        'Application logs are returned unfiltered.',
+    ),
+  source: z
+    .enum(['all', 'build', 'runtime'])
+    .optional()
+    .describe(
+      'Filter logs by origin: "build" (container build logs), "runtime" (running container logs), ' +
+        'or "all" (both). Default is "all".',
+    ),
 });
 
 export const TiltTriggerInput = TiltBaseInput.extend({

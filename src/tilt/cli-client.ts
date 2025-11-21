@@ -27,7 +27,10 @@ export interface ExecOptions {
 export interface LogOptions {
   follow?: boolean;
   tailLines?: number; // Limit to N most recent lines
+  // Level filters Tilt's internal log messages (warnings/errors about builds, resources)
+  // NOT application log content. Application logs are passed through unfiltered.
   level?: 'warn' | 'error';
+  // Source filters by log origin: 'build' (build logs), 'runtime' (container logs), 'all' (both)
   source?: 'all' | 'build' | 'runtime';
 }
 
@@ -239,6 +242,15 @@ export class TiltCliClient {
   /**
    * Get logs for a resource with optional filtering and tailing
    *
+   * IMPORTANT: The --level flag filters Tilt's internal log messages
+   * (e.g., warnings/errors about builds, resource status), NOT application
+   * log content. Application logs are passed through unfiltered by Tilt.
+   *
+   * The --source flag filters by log origin:
+   * - 'build': Container build logs
+   * - 'runtime': Running container logs
+   * - 'all': Both build and runtime logs (default)
+   *
    * @param resourceName - Name of the resource
    * @param options - Log options (level, source, tailLines, follow)
    * @returns Log output
@@ -326,6 +338,31 @@ export class TiltCliClient {
     ];
 
     await this.execTilt(args);
+  }
+
+  /**
+   * Get current Tiltfile args
+   *
+   * @returns Array of current Tiltfile args
+   */
+  async getArgs(): Promise<string[]> {
+    const args = [
+      'get',
+      'tiltfile/(Tiltfile)',
+      '-o',
+      'json',
+      '--port',
+      this.port.toString(),
+      '--host',
+      this.host,
+    ];
+
+    const output = await this.execTilt(args);
+    const tiltfile = JSON.parse(output) as {
+      spec?: { args?: string[] };
+    };
+
+    return tiltfile.spec?.args ?? [];
   }
 
   /**

@@ -13,7 +13,9 @@ import { TiltLogsInput, type TiltToolExtra } from './schemas.js';
 
 export const tiltLogs = tool(
   'tilt_logs',
-  'Read logs from a specific resource with optional tailing and filtering',
+  'Read logs from a specific resource with optional tailing and filtering. ' +
+    'Note: The level parameter filters Tilt internal messages (build/resource warnings/errors), ' +
+    'not application log content. The source parameter filters by log origin (build vs runtime).',
   TiltLogsInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;

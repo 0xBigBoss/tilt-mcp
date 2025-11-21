@@ -94,6 +94,102 @@ describe('tilt_logs tool', () => {
     expect(output.options.source).toBe('runtime');
   });
 
+  describe('level filtering verification', () => {
+    it('verifies that level parameter is passed to Tilt CLI', async () => {
+      // This test verifies the CLI args include --level
+      const logOutput = 'build log line 1\nbuild log line 2\n';
+
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: logOutput,
+      });
+      fixtures.push(fixture);
+
+      await tiltLogs.handler(
+        {
+          resourceName: 'web-app',
+          level: 'error',
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+        { tiltBinaryPath: fixture.tiltBinary },
+      );
+
+      // Verify the CLI was called with correct args
+      const events = fixture.readEvents();
+      const logsSpawn = events.spawns.find((s) => s.args[0] === 'logs');
+      expect(logsSpawn).toBeDefined();
+      expect(logsSpawn?.args).toContain('--level');
+      const levelIndex = logsSpawn?.args.indexOf('--level') ?? -1;
+      expect(logsSpawn?.args[levelIndex + 1]).toBe('error');
+    });
+
+    it('verifies that source parameter is passed to Tilt CLI', async () => {
+      // This test verifies the CLI args include --source
+      const logOutput = 'runtime log\n';
+
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: logOutput,
+      });
+      fixtures.push(fixture);
+
+      await tiltLogs.handler(
+        {
+          resourceName: 'web-app',
+          source: 'build',
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+        { tiltBinaryPath: fixture.tiltBinary },
+      );
+
+      // Verify the CLI was called with correct args
+      const events = fixture.readEvents();
+      const logsSpawn = events.spawns.find((s) => s.args[0] === 'logs');
+      expect(logsSpawn).toBeDefined();
+      expect(logsSpawn?.args).toContain('--source');
+      const sourceIndex = logsSpawn?.args.indexOf('--source') ?? -1;
+      expect(logsSpawn?.args[sourceIndex + 1]).toBe('build');
+    });
+
+    it('documents that level filters Tilt internal logs not app logs', async () => {
+      // IMPORTANT: The --level flag filters Tilt's internal log messages
+      // (e.g., warnings/errors from Tilt itself about builds, resource status)
+      // NOT the actual application log content.
+      //
+      // Application logs are passed through unfiltered by Tilt.
+      // If you want to filter application logs by severity, you must:
+      // 1. Parse the log format (e.g., look for ERROR:, WARN: prefixes)
+      // 2. Implement client-side filtering
+      //
+      // This test documents the current behavior.
+
+      const allLogs =
+        'app: INFO message\napp: ERROR message\napp: DEBUG message\n';
+
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: allLogs,
+      });
+      fixtures.push(fixture);
+
+      const result = await tiltLogs.handler(
+        {
+          resourceName: 'web-app',
+          level: 'error',
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+        { tiltBinaryPath: fixture.tiltBinary },
+      );
+
+      const output = JSON.parse(result.content[0].text);
+      // All logs are returned because --level filters Tilt logs, not app logs
+      expect(output.logs).toBe(allLogs);
+    });
+  });
+
   it('handles minimal logs', async () => {
     const logOutput = 'single line\n';
 
