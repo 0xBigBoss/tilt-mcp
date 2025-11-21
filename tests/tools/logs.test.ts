@@ -31,10 +31,12 @@ describe('tilt_logs tool', () => {
     const result = await tiltLogs.handler(
       {
         resourceName: 'web-app',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -60,10 +62,12 @@ describe('tilt_logs tool', () => {
       {
         resourceName: 'web-app',
         tailLines: 2,
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -83,10 +87,12 @@ describe('tilt_logs tool', () => {
         resourceName: 'web-app',
         level: 'error',
         source: 'runtime',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -202,10 +208,12 @@ describe('tilt_logs tool', () => {
     const result = await tiltLogs.handler(
       {
         resourceName: 'web-app',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -220,12 +228,38 @@ describe('tilt_logs tool', () => {
       tiltLogs.handler(
         {
           resourceName: 'web-app',
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
+  });
+
+  it('throws clear error when resource does not exist', async () => {
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      // Fixture will return default resource list (web-app, test-service, (Tiltfile))
+      // 'nonexistent-resource' is not in that list
+    });
+    fixtures.push(fixture);
+
+    await expect(
+      tiltLogs.handler(
+        {
+          resourceName: 'nonexistent-resource',
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+      ),
+    ).rejects.toThrow(
+      "Resource 'nonexistent-resource' not found. Use tilt_get_resources to list available resources.",
+    );
   });
 
   it('uses default port and host when not provided', async () => {
@@ -263,10 +297,12 @@ describe('tilt_logs tool', () => {
     const result = await tiltLogs.handler(
       {
         resourceName: 'web-app',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -283,10 +319,12 @@ describe('tilt_logs tool', () => {
     const result = await tiltLogs.handler(
       {
         resourceName: 'web-app',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);

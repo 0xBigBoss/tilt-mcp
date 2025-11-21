@@ -47,8 +47,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host, verbose: true },
-      { tiltBinaryPath: fixture.tiltBinary },
+      { verbose: true },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     expect(result.content).toHaveLength(1);
@@ -87,12 +91,14 @@ describe('tilt_get_resources tool', () => {
 
     const result = await tiltGetResources.handler(
       {
-        tiltPort: fixture.port,
-        tiltHost: fixture.host,
         filter: 'web',
         verbose: true,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -129,12 +135,14 @@ describe('tilt_get_resources tool', () => {
 
     const result = await tiltGetResources.handler(
       {
-        tiltPort: fixture.port,
-        tiltHost: fixture.host,
         filter: 'api',
         verbose: true,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -162,11 +170,13 @@ describe('tilt_get_resources tool', () => {
 
     const result = await tiltGetResources.handler(
       {
-        tiltPort: fixture.port,
-        tiltHost: fixture.host,
         filter: 'nonexistent',
       },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -189,8 +199,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {},
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -204,8 +218,12 @@ describe('tilt_get_resources tool', () => {
 
     await expect(
       tiltGetResources.handler(
-        { tiltPort: fixture.port, tiltHost: fixture.host },
-        { tiltBinaryPath: fixture.tiltBinary },
+        {},
+        {
+          tiltBinaryPath: fixture.tiltBinary,
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });
@@ -256,8 +274,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {},
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -334,8 +356,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host, verbose: true },
-      { tiltBinaryPath: fixture.tiltBinary },
+      { verbose: true },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -401,8 +427,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host, status: 'error' },
-      { tiltBinaryPath: fixture.tiltBinary },
+      { status: 'error' },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -444,8 +474,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host, status: 'all' },
-      { tiltBinaryPath: fixture.tiltBinary },
+      { status: 'all' },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -480,8 +514,12 @@ describe('tilt_get_resources tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host, limit: 2, offset: 1 },
-      { tiltBinaryPath: fixture.tiltBinary },
+      { limit: 2, offset: 1 },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -522,8 +560,12 @@ describe('tilt_get_resources tool', () => {
 
     // Default pagination (limit=20, offset=0)
     const result = await tiltGetResources.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {},
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);

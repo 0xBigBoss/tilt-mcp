@@ -392,17 +392,6 @@ describe('Error Handling', () => {
       }),
     ).rejects.toThrow();
   });
-
-  it('rejects invalid port numbers', async () => {
-    await expect(
-      handleCallTool({
-        params: {
-          name: 'tilt_status',
-          arguments: { tiltPort: 99999 },
-        },
-      }),
-    ).rejects.toThrow();
-  });
 });
 
 describe('MCP Protocol Responses', () => {
@@ -433,14 +422,6 @@ describe('MCP Protocol Responses', () => {
       }) => {
         expect(tool.inputSchema.type).toBe('object');
         expect(tool.inputSchema.properties).toBeDefined();
-
-        // All tools should support optional tiltPort and tiltHost
-        if (tool.inputSchema.properties.tiltPort) {
-          expect(tool.inputSchema.properties.tiltPort.type).toBe('integer');
-        }
-        if (tool.inputSchema.properties.tiltHost) {
-          expect(tool.inputSchema.properties.tiltHost.type).toBe('string');
-        }
       },
     );
   });
