@@ -16,15 +16,21 @@ import {
 
 export const tiltArgs = tool(
   'tilt_args',
-  'Set or clear Tiltfile arguments. Must provide either args (to set) or clear=true (to clear). Cannot be called without arguments.',
+  'Get, set, or clear Tiltfile arguments. Use mode="get" to view current args, mode="set" with args to set new args, or mode="clear" to clear args. Legacy usage: provide args (to set) or clear=true (to clear).',
   TiltArgsInput.shape,
   async (args, _extra) => {
-    // Validate that either args or clear is provided (prevents interactive editor)
+    // Validate parameter combinations
     validateTiltArgsInput(args);
 
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port = args.tiltPort ?? extra.tiltPort ?? getDefaultTiltPort();
-    const host = args.tiltHost ?? extra.tiltHost ?? getDefaultTiltHost();
+    const port =
+      (args as { tiltPort?: number }).tiltPort ??
+      extra.tiltPort ??
+      getDefaultTiltPort();
+    const host =
+      (args as { tiltHost?: string }).tiltHost ??
+      extra.tiltHost ??
+      getDefaultTiltHost();
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
@@ -43,7 +49,15 @@ export const tiltArgs = tool(
       binaryPath,
     });
 
-    await client.setArgs(args.args, args.clear);
+    // Determine operation mode
+    let mode: 'get' | 'set' | 'clear';
+    if (args.mode) {
+      mode = args.mode;
+    } else if (args.clear) {
+      mode = 'clear';
+    } else {
+      mode = 'set';
+    }
 
     let result: {
       success: boolean;
@@ -52,7 +66,19 @@ export const tiltArgs = tool(
       connectionInfo: { port: number; host: string };
     };
 
-    if (args.clear) {
+    if (mode === 'get') {
+      const currentArgs = await client.getArgs();
+      result = {
+        success: true,
+        args: currentArgs,
+        message: 'Current Tiltfile args retrieved successfully',
+        connectionInfo: {
+          port,
+          host,
+        },
+      };
+    } else if (mode === 'clear') {
+      await client.setArgs(undefined, true);
       result = {
         success: true,
         message: 'Tiltfile args cleared successfully',
@@ -62,10 +88,12 @@ export const tiltArgs = tool(
         },
       };
     } else {
+      // mode === 'set'
+      await client.setArgs(args.args, false);
       result = {
         success: true,
         args: args.args,
-        message: `Tiltfile args set successfully`,
+        message: 'Tiltfile args set successfully',
         connectionInfo: {
           port,
           host,
