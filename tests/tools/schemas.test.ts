@@ -5,7 +5,6 @@ import {
   PortRangeSchema,
   ResourceNameSchema,
   TiltArgsInput,
-  TiltBaseInput,
   TiltDescribeResourceInput,
   TiltDisableInput,
   TiltDiscoverInput,
@@ -18,110 +17,6 @@ import {
   TiltTriggerInput,
   TiltWaitInput,
 } from '../../src/tools/schemas.ts';
-
-describe('TiltBaseInput Schema', () => {
-  describe('port validation', () => {
-    it('accepts valid port numbers', () => {
-      expect(() => TiltBaseInput.parse({ tiltPort: 1 })).not.toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: 8080 })).not.toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: 65535 })).not.toThrow();
-    });
-
-    it('accepts undefined port (optional)', () => {
-      expect(() => TiltBaseInput.parse({})).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: 'localhost' }),
-      ).not.toThrow();
-    });
-
-    it('rejects port 0', () => {
-      expect(() => TiltBaseInput.parse({ tiltPort: 0 })).toThrow();
-    });
-
-    it('rejects negative ports', () => {
-      expect(() => TiltBaseInput.parse({ tiltPort: -1 })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: -8080 })).toThrow();
-    });
-
-    it('rejects port > 65535', () => {
-      expect(() => TiltBaseInput.parse({ tiltPort: 65536 })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: 99999 })).toThrow();
-    });
-
-    it('rejects non-integer ports', () => {
-      expect(() => TiltBaseInput.parse({ tiltPort: 80.5 })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: 3.14 })).toThrow();
-    });
-
-    it('rejects non-numeric ports', () => {
-      expect(() => TiltBaseInput.parse({ tiltPort: '8080' })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: 'abc' })).toThrow();
-    });
-  });
-
-  describe('host validation', () => {
-    it('accepts valid hostnames', () => {
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: 'localhost' }),
-      ).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: 'tilt-server' }),
-      ).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: 'api.example.com' }),
-      ).not.toThrow();
-    });
-
-    it('accepts IPv4 addresses', () => {
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: '127.0.0.1' }),
-      ).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: '192.168.1.1' }),
-      ).not.toThrow();
-      expect(() => TiltBaseInput.parse({ tiltHost: '10.0.0.1' })).not.toThrow();
-    });
-
-    it('accepts IPv6 addresses in bracket notation', () => {
-      expect(() => TiltBaseInput.parse({ tiltHost: '[::1]' })).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: '[fe80::1]' }),
-      ).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: '[2001:db8::1]' }),
-      ).not.toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: '[::ffff:192.0.2.1]' }),
-      ).not.toThrow();
-    });
-
-    it('accepts undefined host (optional)', () => {
-      expect(() => TiltBaseInput.parse({})).not.toThrow();
-      expect(() => TiltBaseInput.parse({ tiltPort: 10350 })).not.toThrow();
-    });
-
-    it('rejects IPv6 without brackets', () => {
-      expect(() => TiltBaseInput.parse({ tiltHost: '::1' })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltHost: 'fe80::1' })).toThrow();
-    });
-
-    it('rejects hosts with invalid characters', () => {
-      expect(() => TiltBaseInput.parse({ tiltHost: 'host@name' })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltHost: 'host/path' })).toThrow();
-      expect(() => TiltBaseInput.parse({ tiltHost: 'host;rm -rf' })).toThrow();
-    });
-
-    it('rejects hosts with shell metacharacters', () => {
-      expect(() => TiltBaseInput.parse({ tiltHost: 'host`whoami`' })).toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: 'host$(whoami)' }),
-      ).toThrow();
-      expect(() =>
-        TiltBaseInput.parse({ tiltHost: 'host&& rm -rf /' }),
-      ).toThrow();
-    });
-  });
-});
 
 describe('ResourceNameSchema', () => {
   it('accepts valid Kubernetes resource names', () => {
@@ -183,6 +78,18 @@ describe('ResourceNameSchema', () => {
     expect(() => ResourceNameSchema.parse('service`whoami`')).toThrow();
     expect(() => ResourceNameSchema.parse('service$(rm -rf /)')).toThrow();
     expect(() => ResourceNameSchema.parse('service && ls')).toThrow();
+  });
+
+  // TILT-001: Resource Name Validation
+  it('accepts special Tilt resource name (Tiltfile)', () => {
+    // Tilt uses (Tiltfile) as a special resource name
+    expect(() => ResourceNameSchema.parse('(Tiltfile)')).not.toThrow();
+  });
+
+  it('rejects other names with parentheses', () => {
+    // Only (Tiltfile) is allowed, not arbitrary parenthesized names
+    expect(() => ResourceNameSchema.parse('(myresource)')).toThrow();
+    expect(() => ResourceNameSchema.parse('(test)')).toThrow();
   });
 });
 
@@ -396,12 +303,6 @@ describe('TiltDiscoverInput Schema', () => {
 describe('TiltStatusInput Schema', () => {
   it('accepts empty input', () => {
     expect(() => TiltStatusInput.parse({})).not.toThrow();
-  });
-
-  it('accepts base input fields', () => {
-    expect(() =>
-      TiltStatusInput.parse({ tiltPort: 10350, tiltHost: 'localhost' }),
-    ).not.toThrow();
   });
 });
 

@@ -12,30 +12,36 @@ export interface TiltToolExtra {
 
 /**
  * Base schema for all Tilt tool inputs
- * Validates port and host parameters
+ * Connection is configured via MCP/.mcp.json or environment.
  */
-export const TiltBaseInput = z.object({
-  tiltPort: z.number().int().min(1).max(65535).optional(),
-  tiltHost: z
-    .string()
-    .regex(/^([a-zA-Z0-9.-]+|\[[0-9a-fA-F:.]+\])$/, 'Invalid host format')
-    .optional(),
-});
+export const TiltBaseInput = z.object({}).passthrough();
 
 /**
  * Resource name schema - follows Kubernetes naming conventions
- * Must be lowercase alphanumeric with hyphens and dots
- * Cannot start or end with hyphen
- * Max 253 characters
+ * with special case for Tilt-specific resource names
+ *
+ * Standard names:
+ * - Must be lowercase alphanumeric with hyphens and dots
+ * - Cannot start or end with hyphen
+ * - Max 253 characters
+ *
+ * Special Tilt names:
+ * - (Tiltfile) - the main Tiltfile resource
  */
 export const ResourceNameSchema = z
   .string()
   .min(1)
   .max(253)
-  .regex(
-    /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/,
-    'Must be valid Kubernetes resource name',
-  );
+  .refine((name) => {
+    // Special case: (Tiltfile) is a valid Tilt resource name
+    if (name === '(Tiltfile)') {
+      return true;
+    }
+    // Standard Kubernetes DNS-1123 naming
+    return /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/.test(
+      name,
+    );
+  }, 'Must be valid Kubernetes resource name or special Tilt resource name');
 
 /**
  * Label schema - Kubernetes label format
@@ -157,23 +163,57 @@ export const TiltDisableInput = TiltBaseInput.extend({
 });
 
 export const TiltArgsInput = TiltBaseInput.extend({
+  mode: z
+    .enum(['get', 'set', 'clear'])
+    .optional()
+    .describe(
+      'Operation mode: "get" to view current args, "set" to set args, "clear" to clear args. If not specified, behavior is inferred from other parameters (legacy mode).',
+    ),
   args: TiltfileArgsSchema.optional().describe(
-    'Args to set. Required unless clear=true.',
+    'Args to set. Required when mode="set" or when mode is not specified and clear is not true.',
   ),
   clear: z
     .boolean()
     .optional()
-    .describe('Clear all args. Required if args is not provided.'),
+    .describe(
+      'Clear all args. Required if mode is not specified and args is not provided. Cannot be used with mode parameter.',
+    ),
 });
 
 /**
- * Validates TiltArgsInput to ensure either args or clear is provided.
+ * Validates TiltArgsInput to ensure proper parameter combinations.
  * Use this for runtime validation - the schema itself allows optional fields
  * because ZodEffects (from .refine()) doesn't work with tool().shape.
  */
 export function validateTiltArgsInput(
   data: z.infer<typeof TiltArgsInput>,
 ): void {
+  // If mode is specified, validate it's not mixed with legacy flags
+  if (data.mode) {
+    if (data.clear !== undefined) {
+      throw new Error(
+        'Cannot mix "mode" parameter with "clear" flag. Use mode="clear" instead.',
+      );
+    }
+    if (data.mode === 'get' && data.args !== undefined) {
+      throw new Error(
+        'Cannot mix mode="get" with "args" parameter. Use mode="get" without args to view current arguments.',
+      );
+    }
+    if (data.mode === 'clear' && data.args !== undefined) {
+      throw new Error(
+        'Cannot mix mode="clear" with "args" parameter. Use mode="clear" without args.',
+      );
+    }
+    if (data.mode === 'set' && (!data.args || data.args.length === 0)) {
+      throw new Error(
+        'mode="set" requires non-empty "args" parameter to be provided.',
+      );
+    }
+    return; // Mode validation complete
+  }
+
+  // Legacy validation: either args or clear must be provided
   if (data.clear !== true && (!data.args || data.args.length === 0)) {
     throw new Error(
       'Either args (non-empty) or clear=true must be provided. ' +
