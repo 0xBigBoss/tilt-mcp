@@ -50,12 +50,12 @@ The fastest way to use this MCP server with Claude Code is via `npx` or `bunx`:
 # Using npx (npm)
 claude mcp add --transport stdio tilt \
   --env TILT_PORT=10350 \
-  -- npx -y tilt-mcp
+  -- npx -y @0xbigboss/tilt-mcp
 
 # Using bunx (Bun)
 claude mcp add --transport stdio tilt \
   --env TILT_PORT=10350 \
-  -- bunx tilt-mcp
+  -- bunx @0xbigboss/tilt-mcp
 ```
 
 **Understanding the command:**
@@ -63,7 +63,7 @@ claude mcp add --transport stdio tilt \
 - `--transport stdio`: Run as a local process (required for stdio-based MCP servers)
 - `--env TILT_PORT=10350`: Set the Tilt API port (required; adjust if your Tilt uses a different port)
 - `--`: Separates Claude's flags from the MCP server command
-- `npx -y tilt-mcp` or `bunx tilt-mcp`: Automatically downloads and runs the latest version
+- `npx -y @0xbigboss/tilt-mcp` or `bunx @0xbigboss/tilt-mcp`: Automatically downloads and runs the latest version
 
 **Optional environment variables:**
 
@@ -72,7 +72,7 @@ claude mcp add --transport stdio tilt \
 claude mcp add --transport stdio tilt \
   --env TILT_PORT=10350 \
   --env TILT_HOST=tilt.example.com \
-  -- npx -y tilt-mcp
+  -- npx -y @0xbigboss/tilt-mcp
 ```
 
 **Verify installation:**
