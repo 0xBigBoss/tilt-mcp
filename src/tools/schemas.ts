@@ -150,7 +150,7 @@ export const TiltLogsInput = TiltBaseInput.extend({
     .optional()
     .default(100)
     .describe(
-      'Number of most recent log lines to return (max 10000, default 100)',
+        'Number of most recent log lines to return (max 10000, default 100)',
     ),
   level: z
     .enum(['warn', 'error'])
@@ -167,18 +167,42 @@ export const TiltLogsInput = TiltBaseInput.extend({
       'Filter logs by origin: "build" (container build logs), "runtime" (running container logs), ' +
         'or "all" (both). Default is "all".',
     ),
+  search: LogSearchSchema.optional().describe(
+    'Client-side filtering of returned log lines. Supports substring (default) or regex search, with optional case sensitivity and regex flags.',
+  ),
 });
 
 export const TiltTriggerInput = TiltBaseInput.extend({
   resourceName: ResourceNameSchema,
+  verbose: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'When true, returns the latest resource state after triggering (cleaned describe output).',
+    ),
 });
 
 export const TiltEnableInput = TiltBaseInput.extend({
   resourceName: ResourceNameSchema,
+  verbose: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'When true, returns the updated resource state after enabling (cleaned describe output).',
+    ),
 });
 
 export const TiltDisableInput = TiltBaseInput.extend({
   resourceName: ResourceNameSchema,
+  verbose: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'When true, returns the updated resource state after disabling (cleaned describe output).',
+    ),
 });
 
 export const TiltArgsInput = TiltBaseInput.extend({
@@ -235,8 +259,11 @@ export function validateTiltArgsInput(
   // Legacy validation: either args or clear must be provided
   if (data.clear !== true && (!data.args || data.args.length === 0)) {
     throw new Error(
-      'Either args (non-empty) or clear=true must be provided. ' +
-        'Running tilt args without arguments opens an interactive editor.',
+      [
+        'Either provide mode="get"|"set"|"clear" or supply args (non-empty) / clear=true.',
+        'Running tilt args without arguments opens an interactive editor (not supported in MCP).',
+        'Examples: mode="get"; mode="set" with args=["arg1"]; mode="clear".',
+      ].join(' '),
     );
   }
 }
@@ -245,6 +272,13 @@ export const TiltWaitInput = TiltBaseInput.extend({
   resources: z.array(ResourceNameSchema).optional(),
   timeout: z.number().int().positive().max(600).optional(),
   condition: z.string().optional().default('Ready'),
+  verbose: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'When true, returns a slim status summary for waited resources after completion.',
+    ),
 });
 
 export const TiltDumpInput = TiltBaseInput.extend({
