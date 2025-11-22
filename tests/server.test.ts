@@ -8,12 +8,33 @@
  * - Proper MCP protocol responses
  */
 
-import { describe, expect, it } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import {
   createServer,
   handleCallTool,
   handleListTools,
 } from '../src/server.ts';
+
+const originalPort = process.env.TILT_PORT;
+const originalHost = process.env.TILT_HOST;
+
+beforeAll(() => {
+  process.env.TILT_PORT = process.env.TILT_PORT ?? '10350';
+  process.env.TILT_HOST = process.env.TILT_HOST ?? 'localhost';
+});
+
+afterAll(() => {
+  if (originalPort !== undefined) {
+    process.env.TILT_PORT = originalPort;
+  } else {
+    delete process.env.TILT_PORT;
+  }
+  if (originalHost !== undefined) {
+    process.env.TILT_HOST = originalHost;
+  } else {
+    delete process.env.TILT_HOST;
+  }
+});
 
 describe('MCP Server Initialization', () => {
   it('creates server with correct name and version', () => {
@@ -24,15 +45,14 @@ describe('MCP Server Initialization', () => {
 });
 
 describe('Tool Registration - tools/list handler', () => {
-  it('registers all 10 tools', async () => {
+  it('registers all tools', async () => {
     const response = await handleListTools();
 
     expect(response.tools).toBeDefined();
-    expect(response.tools.length).toBe(10);
+    expect(response.tools.length).toBe(9);
 
     // Verify all expected tools are registered
     const toolNames = response.tools.map((t: { name: string }) => t.name);
-    expect(toolNames).toContain('tilt_discover');
     expect(toolNames).toContain('tilt_status');
     expect(toolNames).toContain('tilt_get_resources');
     expect(toolNames).toContain('tilt_describe_resource');
@@ -42,19 +62,6 @@ describe('Tool Registration - tools/list handler', () => {
     expect(toolNames).toContain('tilt_disable');
     expect(toolNames).toContain('tilt_wait');
     expect(toolNames).toContain('tilt_args');
-  });
-
-  it('tilt_discover has correct schema', async () => {
-    const response = await handleListTools();
-
-    const tool = response.tools.find(
-      (t: { name: string }) => t.name === 'tilt_discover',
-    );
-    expect(tool).toBeDefined();
-    expect(tool.name).toBe('tilt_discover');
-    expect(tool.description).toContain('Discover running Tilt instances');
-    expect(tool.inputSchema).toBeDefined();
-    expect(tool.inputSchema.type).toBe('object');
   });
 
   it('tilt_status has correct schema', async () => {
@@ -170,19 +177,6 @@ describe('Tool Registration - tools/list handler', () => {
 });
 
 describe('Tool Invocation - tools/call handler', () => {
-  it('tilt_discover tool is implemented and callable', async () => {
-    const result = handleCallTool({
-      params: {
-        name: 'tilt_discover',
-        arguments: {},
-      },
-    });
-
-    // Tool is implemented - it will either succeed or fail depending on Tilt availability
-    // Either way, it should not throw "not implemented"
-    await expect(result).resolves.toBeDefined();
-  });
-
   it('tilt_status tool is implemented and callable', async () => {
     const result = handleCallTool({
       params: {
@@ -424,5 +418,70 @@ describe('MCP Protocol Responses', () => {
         expect(tool.inputSchema.properties).toBeDefined();
       },
     );
+  });
+});
+
+describe('CLI Argument Handling', () => {
+  it('--help flag displays help information', () => {
+    const result = Bun.spawnSync(['bun', 'src/server.ts', '--help']);
+    const stdout = result.stdout.toString();
+
+    expect(stdout).toContain('Tilt MCP Server');
+    expect(stdout).toContain('USAGE:');
+    expect(stdout).toContain('DESCRIPTION:');
+    expect(stdout).toContain('OPTIONS:');
+    expect(stdout).toContain('AVAILABLE TOOLS:');
+    expect(stdout).toContain('ENVIRONMENT VARIABLES:');
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('-h flag displays help information', () => {
+    const result = Bun.spawnSync(['bun', 'src/server.ts', '-h']);
+    const stdout = result.stdout.toString();
+
+    expect(stdout).toContain('Tilt MCP Server');
+    expect(stdout).toContain('USAGE:');
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('--version flag displays version', () => {
+    const result = Bun.spawnSync(['bun', 'src/server.ts', '--version']);
+    const stdout = result.stdout.toString();
+
+    expect(stdout).toContain('Tilt MCP Server v0.1.0');
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('-v flag displays version', () => {
+    const result = Bun.spawnSync(['bun', 'src/server.ts', '-v']);
+    const stdout = result.stdout.toString();
+
+    expect(stdout).toContain('Tilt MCP Server v0.1.0');
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('help includes all available tools', () => {
+    const result = Bun.spawnSync(['bun', 'src/server.ts', '--help']);
+    const stdout = result.stdout.toString();
+
+    expect(stdout).toContain('tilt_status');
+    expect(stdout).toContain('tilt_get_resources');
+    expect(stdout).toContain('tilt_describe_resource');
+    expect(stdout).toContain('tilt_logs');
+    expect(stdout).toContain('tilt_trigger');
+    expect(stdout).toContain('tilt_enable');
+    expect(stdout).toContain('tilt_disable');
+    expect(stdout).toContain('tilt_wait');
+    expect(stdout).toContain('tilt_args');
+  });
+
+  it('help includes environment variable documentation', () => {
+    const result = Bun.spawnSync(['bun', 'src/server.ts', '--help']);
+    const stdout = result.stdout.toString();
+
+    expect(stdout).toContain('TILT_HOST');
+    expect(stdout).toContain('TILT_PORT');
+    expect(stdout).toContain('default: localhost');
+    expect(stdout).toContain('required, typically 10350');
   });
 });

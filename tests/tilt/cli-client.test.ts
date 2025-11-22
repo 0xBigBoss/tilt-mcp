@@ -53,20 +53,15 @@ describe('TiltCliClient', () => {
       expect(info.host).toBe('192.168.1.1');
     });
 
-    test('uses defaults when not provided (no env vars)', () => {
-      // Save and clear env vars to test built-in defaults
+    test('throws when no host/port config is available', () => {
       const savedPort = process.env.TILT_PORT;
       const savedHost = process.env.TILT_HOST;
       delete process.env.TILT_PORT;
       delete process.env.TILT_HOST;
 
       try {
-        const defaultClient = new TiltCliClient();
-        const info = defaultClient.getClientInfo();
-        expect(info.port).toBe(10350);
-        expect(info.host).toBe('localhost');
+        expect(() => new TiltCliClient()).toThrow(/TILT_PORT is not set/);
       } finally {
-        // Restore env vars
         if (savedPort !== undefined) process.env.TILT_PORT = savedPort;
         if (savedHost !== undefined) process.env.TILT_HOST = savedHost;
       }
@@ -102,6 +97,8 @@ describe('TiltCliClient', () => {
 
     test('accepts custom binary path', () => {
       const customClient = new TiltCliClient({
+        port: fixture.port,
+        host: fixture.host,
         binaryPath: '/custom/path/to/tilt',
       });
 
@@ -233,6 +230,8 @@ describe('TiltCliClient', () => {
     test('ENOENT throws TiltNotInstalledError', async () => {
       const badClient = new TiltCliClient({
         binaryPath: '/nonexistent/tilt',
+        port: fixture.port,
+        host: fixture.host,
       });
 
       await expect(badClient.execTilt(['get', 'session'])).rejects.toThrow(
@@ -288,6 +287,29 @@ describe('TiltCliClient', () => {
           'my-service',
         );
       }
+    });
+
+    test('resource not found message includes helper hint', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStderr: 'Error: resource "missing-resource" not found',
+      });
+      fixture.setBehavior('refused');
+
+      await expect(
+        client.describeResource('missing-resource'),
+      ).rejects.toThrow(/tilt_get_resources/i);
+    });
+
+    test('parses "does not exist" errors as resource not found', async () => {
+      fixture.setBehavior('healthy', {
+        sessionStderr:
+          'Error: (404): resource "ghost-service" does not exist in namespace default',
+      });
+      fixture.setBehavior('refused');
+
+      await expect(client.describeResource('ghost-service')).rejects.toThrow(
+        TiltResourceNotFoundError,
+      );
     });
   });
 

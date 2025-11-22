@@ -60,10 +60,12 @@ describe('tilt_describe_resource tool', () => {
     const result = await tiltDescribeResource.handler(
       {
         resourceName: 'web-app',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -127,10 +129,12 @@ describe('tilt_describe_resource tool', () => {
     const result = await tiltDescribeResource.handler(
       {
         resourceName: 'build-heavy',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -171,10 +175,12 @@ describe('tilt_describe_resource tool', () => {
     const result = await tiltDescribeResource.handler(
       {
         resourceName: 'api-gateway',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -201,10 +207,12 @@ describe('tilt_describe_resource tool', () => {
     const result = await tiltDescribeResource.handler(
       {
         resourceName: 'minimal-resource',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -221,10 +229,12 @@ describe('tilt_describe_resource tool', () => {
       tiltDescribeResource.handler(
         {
           resourceName: 'web-app',
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });

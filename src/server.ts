@@ -15,7 +15,6 @@ import {
   tiltArgs,
   tiltDescribeResource,
   tiltDisable,
-  tiltDiscover,
   tiltEnable,
   tiltGetResources,
   tiltLogs,
@@ -27,7 +26,6 @@ import {
   TiltArgsInput,
   TiltDescribeResourceInput,
   TiltDisableInput,
-  TiltDiscoverInput,
   TiltEnableInput,
   TiltGetResourcesInput,
   TiltLogsInput,
@@ -44,11 +42,6 @@ import {
 export async function handleListTools() {
   return {
     tools: [
-      {
-        name: 'tilt_discover',
-        description: 'Discover running Tilt instances by scanning common ports',
-        inputSchema: zodToJsonSchema(TiltDiscoverInput),
-      },
       {
         name: 'tilt_status',
         description: 'Get overall Tilt status and resource summary',

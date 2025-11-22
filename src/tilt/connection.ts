@@ -9,7 +9,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { getDefaultTiltHost, getDefaultTiltPort } from './config.js';
+import { resolveTiltTarget } from './config.js';
 import {
   TiltCommandTimeoutError,
   TiltNotInstalledError,
@@ -38,8 +38,12 @@ export class TiltConnection {
   private readonly checkInterval: number;
 
   constructor(config: TiltConnectionConfig = {}) {
-    this.port = config.port ?? getDefaultTiltPort();
-    this.host = config.host ?? getDefaultTiltHost();
+    const { port, host } = resolveTiltTarget({
+      port: config.port,
+      host: config.host,
+    });
+    this.port = port;
+    this.host = host;
     this.timeout = config.timeout ?? 2000;
     this.binaryPath = config.binaryPath ?? 'tilt';
     this.env = config.env;

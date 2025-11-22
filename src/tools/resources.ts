@@ -6,7 +6,7 @@
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
-import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
+import { resolveTiltTarget } from '../tilt/config.js';
 import { deriveStatus, toSlimResource } from '../tilt/transformers.js';
 import type { UIResource } from '../tilt/types.js';
 import { TiltGetResourcesInput, type TiltToolExtra } from './schemas.js';
@@ -17,14 +17,10 @@ export const tiltGetResources = tool(
   TiltGetResourcesInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port =
-      (args as { tiltPort?: number }).tiltPort ??
-      extra.tiltPort ??
-      getDefaultTiltPort();
-    const host =
-      (args as { tiltHost?: string }).tiltHost ??
-      extra.tiltHost ??
-      getDefaultTiltHost();
+    const { port, host } = resolveTiltTarget({
+      port: extra.tiltPort,
+      host: extra.tiltHost,
+    });
     const binaryPath = extra.tiltBinaryPath;
 
     // Get resources using CLI client

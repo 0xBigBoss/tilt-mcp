@@ -27,12 +27,12 @@ describe('tilt_enable tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltEnable.handler(
+      { resourceName: 'web-app' },
       {
-        resourceName: 'web-app',
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -44,18 +44,50 @@ describe('tilt_enable tool', () => {
     expect(output.message).toContain('enabled');
   });
 
+  it('returns resource state when verbose is true', async () => {
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: JSON.stringify({
+        kind: 'UIResource',
+        metadata: { name: 'web-app', labels: { team: 'dev' } },
+        status: {
+          disableStatus: { state: 'Enabled' },
+          conditions: [
+            { type: 'Ready', status: 'True' },
+            { type: 'UpToDate', status: 'True' },
+          ],
+        },
+      }),
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltEnable.handler(
+      { resourceName: 'web-app', verbose: true },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    expect(output.success).toBe(true);
+    expect(output.resourceState.name).toBe('web-app');
+    expect(output.resourceState.labels.team).toBe('dev');
+  });
+
   it('throws error when Tilt is not running', async () => {
     const fixture = await createTiltCliFixture({ behavior: 'refused' });
     fixtures.push(fixture);
 
     await expect(
       tiltEnable.handler(
+        { resourceName: 'web-app' },
         {
-          resourceName: 'web-app',
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });

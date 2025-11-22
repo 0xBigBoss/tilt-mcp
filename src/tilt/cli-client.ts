@@ -10,7 +10,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { getDefaultTiltHost, getDefaultTiltPort } from './config.js';
+import { resolveTiltTarget } from './config.js';
 import {
   TiltCommandTimeoutError,
   TiltNotInstalledError,
@@ -67,8 +67,12 @@ export class TiltCliClient {
   private readonly binaryPath: string;
 
   constructor(config: TiltCliClientConfig = {}) {
-    this.port = config.port ?? getDefaultTiltPort();
-    this.host = config.host ?? getDefaultTiltHost();
+    const { port, host } = resolveTiltTarget({
+      port: config.port,
+      host: config.host,
+    });
+    this.port = port;
+    this.host = host;
     this.binaryPath = config.binaryPath ?? 'tilt';
   }
 
@@ -181,11 +185,12 @@ export class TiltCliClient {
     if (stderr.includes('connection refused') || stderr.includes('dial tcp')) {
       return new TiltNotRunningError(this.port, this.host);
     }
-    if (stderr.includes('not found')) {
-      const match = stderr.match(/resource "([^"]+)" not found/);
-      if (match) {
-        return new TiltResourceNotFoundError(match[1]);
-      }
+    const notFoundMatch =
+      stderr.match(/resource ["']?([^"']+)["']? (not found|does not exist)/i) ??
+      stderr.match(/["']([^"']+)["'] not found/i) ??
+      stderr.match(/no such resource ["']?([^"']+)["']?/i);
+    if (notFoundMatch) {
+      return new TiltResourceNotFoundError(notFoundMatch[1]);
     }
     return new Error(`Tilt command failed (exit ${code}): ${stderr}`);
   }

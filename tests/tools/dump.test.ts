@@ -30,10 +30,12 @@ describe('tilt_dump tool', () => {
     const result = await tiltDump.handler(
       {
         format: 'json',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -53,11 +55,12 @@ describe('tilt_dump tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltDump.handler(
+      {},
       {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -71,11 +74,12 @@ describe('tilt_dump tool', () => {
 
     await expect(
       tiltDump.handler(
+        {},
         {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });

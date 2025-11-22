@@ -27,12 +27,12 @@ describe('tilt_trigger tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltTrigger.handler(
+      { resourceName: 'web-app' },
       {
-        resourceName: 'web-app',
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -46,18 +46,46 @@ describe('tilt_trigger tool', () => {
     expect(output.connectionInfo.host).toBe(fixture.host);
   });
 
+  it('returns resource state when verbose is true', async () => {
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: JSON.stringify({
+        kind: 'UIResource',
+        metadata: { name: 'api', labels: { team: 'platform' } },
+        status: {
+          conditions: [{ type: 'Ready', status: 'True' }],
+          updateStatus: 'in_progress',
+        },
+      }),
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltTrigger.handler(
+      { resourceName: 'api', verbose: true },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    expect(output.resourceState.name).toBe('api');
+    expect(output.resourceState.status.updateStatus).toBe('in_progress');
+  });
+
   it('throws error when Tilt is not running', async () => {
     const fixture = await createTiltCliFixture({ behavior: 'refused' });
     fixtures.push(fixture);
 
     await expect(
       tiltTrigger.handler(
+        { resourceName: 'web-app' },
         {
-          resourceName: 'web-app',
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });

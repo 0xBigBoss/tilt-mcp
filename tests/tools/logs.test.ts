@@ -19,7 +19,7 @@ describe('tilt_logs tool', () => {
     fixtures.length = 0;
   });
 
-  it('returns logs for a resource', async () => {
+  it('returns logs for a resource as plain text', async () => {
     const logOutput = 'line 1\nline 2\nline 3\n';
 
     const fixture = await createTiltCliFixture({
@@ -41,12 +41,7 @@ describe('tilt_logs tool', () => {
 
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe('text');
-
-    const output = JSON.parse(result.content[0].text);
-    expect(output.logs).toBe(logOutput);
-    expect(output.resourceName).toBe('web-app');
-    expect(output.connectionInfo.port).toBe(fixture.port);
-    expect(output.connectionInfo.host).toBe(fixture.host);
+    expect(result.content[0].text).toBe(logOutput);
   });
 
   it('returns tailed logs when tailLines specified', async () => {
@@ -70,34 +65,7 @@ describe('tilt_logs tool', () => {
       },
     );
 
-    const output = JSON.parse(result.content[0].text);
-    expect(output.logs).toBe('line 4\nline 5\n');
-    expect(output.options.tailLines).toBe(2);
-  });
-
-  it('includes filter options in response', async () => {
-    const fixture = await createTiltCliFixture({
-      behavior: 'healthy',
-      stdout: 'error log\n',
-    });
-    fixtures.push(fixture);
-
-    const result = await tiltLogs.handler(
-      {
-        resourceName: 'web-app',
-        level: 'error',
-        source: 'runtime',
-      },
-      {
-        tiltBinaryPath: fixture.tiltBinary,
-        tiltPort: fixture.port,
-        tiltHost: fixture.host,
-      },
-    );
-
-    const output = JSON.parse(result.content[0].text);
-    expect(output.options.level).toBe('error');
-    expect(output.options.source).toBe('runtime');
+    expect(result.content[0].text).toBe('line 4\nline 5\n');
   });
 
   describe('level filtering verification', () => {
@@ -115,10 +83,12 @@ describe('tilt_logs tool', () => {
         {
           resourceName: 'web-app',
           level: 'error',
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       );
 
       // Verify the CLI was called with correct args
@@ -144,10 +114,12 @@ describe('tilt_logs tool', () => {
         {
           resourceName: 'web-app',
           source: 'build',
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       );
 
       // Verify the CLI was called with correct args
@@ -184,15 +156,16 @@ describe('tilt_logs tool', () => {
         {
           resourceName: 'web-app',
           level: 'error',
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       );
 
-      const output = JSON.parse(result.content[0].text);
       // All logs are returned because --level filters Tilt logs, not app logs
-      expect(output.logs).toBe(allLogs);
+      expect(result.content[0].text).toBe(allLogs);
     });
   });
 
@@ -216,8 +189,38 @@ describe('tilt_logs tool', () => {
       },
     );
 
-    const output = JSON.parse(result.content[0].text);
-    expect(output.logs).toBe(logOutput);
+    expect(result.content[0].text).toBe(logOutput);
+  });
+
+  it('applies default tail of 100 lines', async () => {
+    const lines = Array.from({ length: 120 }, (_, i) => `line ${i + 1}`);
+    const logOutput = `${lines.join('\n')}\n`;
+
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: logOutput,
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltLogs.handler(
+      {
+        resourceName: 'web-app',
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+    );
+
+    const output = result.content[0].text.endsWith('\n')
+      ? result.content[0].text.slice(0, -1)
+      : result.content[0].text;
+    const outputLines = output.split('\n');
+
+    expect(outputLines.length).toBe(100);
+    expect(outputLines[0]).toBe('line 21');
+    expect(outputLines[99]).toBe('line 120');
   });
 
   it('throws error when Tilt is not running', async () => {
@@ -258,7 +261,7 @@ describe('tilt_logs tool', () => {
         },
       ),
     ).rejects.toThrow(
-      "Resource 'nonexistent-resource' not found. Use tilt_get_resources to list available resources.",
+      'Resource "nonexistent-resource" not found. Use tilt_get_resources to list available resources or verify the name.',
     );
   });
 
@@ -278,8 +281,7 @@ describe('tilt_logs tool', () => {
       },
     );
 
-    const output = JSON.parse(result.content[0].text);
-    expect(output.logs).toBe('test logs\n');
+    expect(result.content[0].text).toBe('test logs\n');
   });
 
   it('strips ANSI codes from log output', async () => {
@@ -305,29 +307,105 @@ describe('tilt_logs tool', () => {
       },
     );
 
-    const output = JSON.parse(result.content[0].text);
-    expect(output.logs).toBe(expectedClean);
+    expect(result.content[0].text).toBe(expectedClean);
   });
 
-  it('uses default tailLines of 100', async () => {
-    const fixture = await createTiltCliFixture({
-      behavior: 'healthy',
-      stdout: 'test logs\n',
+  describe('search filtering', () => {
+    it('filters logs by substring (case-sensitive by default)', async () => {
+      const logOutput =
+        'app: INFO boot\napp: ERROR something broke\napp: WARN low disk\n';
+
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: logOutput,
+      });
+      fixtures.push(fixture);
+
+      const result = await tiltLogs.handler(
+        {
+          resourceName: 'web-app',
+          search: { query: 'ERROR' },
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+      );
+
+      expect(result.content[0].text).toBe('app: ERROR something broke\n');
     });
-    fixtures.push(fixture);
 
-    const result = await tiltLogs.handler(
-      {
-        resourceName: 'web-app',
-      },
-      {
-        tiltBinaryPath: fixture.tiltBinary,
-        tiltPort: fixture.port,
-        tiltHost: fixture.host,
-      },
-    );
+    it('filters logs by substring when caseSensitive is false', async () => {
+      const logOutput =
+        'app: info boot\napp: error something broke\napp: warn low disk\n';
 
-    const output = JSON.parse(result.content[0].text);
-    expect(output.options.tailLines).toBe(100);
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: logOutput,
+      });
+      fixtures.push(fixture);
+
+      const result = await tiltLogs.handler(
+        {
+          resourceName: 'web-app',
+          search: { query: 'ERROR', caseSensitive: false },
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+      );
+
+      expect(result.content[0].text).toBe('app: error something broke\n');
+    });
+
+    it('filters logs by regex with flags', async () => {
+      const logOutput =
+        'app: info boot\napp: ERROR something broke\napp: Warn low disk\n';
+
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: logOutput,
+      });
+      fixtures.push(fixture);
+
+      const result = await tiltLogs.handler(
+        {
+          resourceName: 'web-app',
+          search: { query: '^app: warn', mode: 'regex', flags: 'im' },
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
+      );
+
+      expect(result.content[0].text).toBe('app: Warn low disk\n');
+    });
+
+    it('throws on invalid regex search', async () => {
+      const fixture = await createTiltCliFixture({
+        behavior: 'healthy',
+        stdout: 'app: info boot\n',
+      });
+      fixtures.push(fixture);
+
+      await expect(
+        tiltLogs.handler(
+          {
+            resourceName: 'web-app',
+            search: { query: '[unclosed', mode: 'regex' },
+          },
+          {
+            tiltBinaryPath: fixture.tiltBinary,
+            tiltPort: fixture.port,
+            tiltHost: fixture.host,
+          },
+        ),
+      ).rejects.toThrow(/Invalid search regex/i);
+    });
   });
 });

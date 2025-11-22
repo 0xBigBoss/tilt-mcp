@@ -65,8 +65,12 @@ describe('tilt_status tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltStatus.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {},
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     expect(result.content).toHaveLength(1);
@@ -104,8 +108,12 @@ describe('tilt_status tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltStatus.handler(
-      { tiltPort: fixture.port, tiltHost: fixture.host },
-      { tiltBinaryPath: fixture.tiltBinary },
+      {},
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
     );
 
     const output = JSON.parse(result.content[0].text);
@@ -127,8 +135,12 @@ describe('tilt_status tool', () => {
 
     await expect(
       tiltStatus.handler(
-        { tiltPort: fixture.port, tiltHost: fixture.host },
-        { tiltBinaryPath: fixture.tiltBinary },
+        {},
+        {
+          tiltBinaryPath: fixture.tiltBinary,
+          tiltPort: fixture.port,
+          tiltHost: fixture.host,
+        },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });

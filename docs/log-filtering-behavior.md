@@ -2,7 +2,11 @@
 
 ## Summary
 
-The `tilt_logs` tool correctly passes `--level` and `--source` parameters to the Tilt CLI. However, these parameters have specific behavior that differs from filtering application log content:
+The `tilt_logs` tool:
+
+1. Returns plain-text log output (no JSON envelope), mirroring `tilt logs`
+2. Accepts an optional `search` parameter for client-side filtering (substring or regex, with optional case sensitivity)
+3. Passes `--level` and `--source` parameters through to the Tilt CLI. These have specific behavior that differs from filtering application log content.
 
 ### Level Parameter (`--level`)
 
@@ -35,6 +39,30 @@ app: ERROR Database connection failed
 
 **This parameter works as expected** and effectively filters logs based on where they originated.
 
+### Search Parameter (`search`)
+
+**What it does:**
+- Performs client-side filtering of returned log lines
+- Supports substring search (default) or regex
+- Supports optional case-insensitive matching
+- Applies after ANSI stripping and tailing, so it operates on the final returned lines
+
+**What it does NOT do:**
+- Does not change what Tilt returns; it only filters locally
+- Does not modify log formatting beyond removing ANSI codes (consistent with the rest of the tool)
+
+**Examples:**
+```json
+// Substring search (default, case-sensitive)
+{ "search": { "query": "ERROR" } }
+
+// Case-insensitive substring
+{ "search": { "query": "error", "caseSensitive": false } }
+
+// Regex search with flags
+{ "search": { "query": "^app: warn", "mode": "regex", "flags": "im" } }
+```
+
 ## Research Findings
 
 ### Testing Methodology
@@ -66,11 +94,12 @@ The documentation doesn't clarify what "log level" refers to, but testing confir
 
 The implementation correctly:
 1. Passes `--level` and `--source` to Tilt CLI
-2. Documents the actual behavior in schema descriptions
-3. Documents the actual behavior in tool descriptions
-4. Documents the actual behavior in code comments
-5. Includes tests that verify the parameters are passed correctly
-6. Includes tests that document the actual filtering behavior
+2. Provides a `search` parameter for client-side substring/regex filtering
+3. Documents the actual behavior in schema descriptions
+4. Documents the actual behavior in tool descriptions
+5. Documents the actual behavior in code comments
+6. Includes tests that verify the parameters are passed correctly
+7. Includes tests that document the actual filtering behavior
 
 ### Test Coverage
 
@@ -116,18 +145,18 @@ If application log filtering is needed, consider:
 
 ## Files Modified
 
-1. `/Users/allen/0xbigboss/tilt-mcp/src/tools/logs.ts`
+1. `src/tools/logs.ts`
    - Updated tool description to clarify level/source behavior
 
-2. `/Users/allen/0xbigboss/tilt-mcp/src/tools/schemas.ts`
+2. `src/tools/schemas.ts`
    - Added detailed descriptions to `level` and `source` schema fields
    - Clarified what level filtering actually does
 
-3. `/Users/allen/0xbigboss/tilt-mcp/src/tilt/cli-client.ts`
+3. `src/tilt/cli-client.ts`
    - Added comments to `LogOptions` interface
    - Added detailed JSDoc to `getLogs` method
 
-4. `/Users/allen/0xbigboss/tilt-mcp/tests/tools/logs.test.ts`
+4. `tests/tools/logs.test.ts`
    - Added new test suite: "level filtering verification"
    - Added 3 new tests that verify and document the behavior
 

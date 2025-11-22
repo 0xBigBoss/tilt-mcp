@@ -30,10 +30,12 @@ describe('tilt_wait tool', () => {
       {
         resources: ['web-app'],
         timeout: 30,
+      },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -45,6 +47,56 @@ describe('tilt_wait tool', () => {
     expect(output.output).toBeUndefined(); // Should not include raw CLI output
   });
 
+  it('returns status summary when verbose is true', async () => {
+    const fixture = await createTiltCliFixture({
+      behavior: 'healthy',
+      stdout: JSON.stringify({
+        kind: 'UIResourceList',
+        items: [
+          {
+            metadata: { name: 'web-app' },
+            status: {
+              conditions: [
+                { type: 'Ready', status: 'True' },
+                { type: 'UpToDate', status: 'True' },
+              ],
+            },
+          },
+          {
+            metadata: { name: 'api' },
+            status: {
+              conditions: [{ type: 'Ready', status: 'False' }],
+              updateStatus: 'pending',
+            },
+          },
+        ],
+      }),
+    });
+    fixtures.push(fixture);
+
+    const result = await tiltWait.handler(
+      { resources: ['web-app', 'api'], verbose: true },
+      {
+        tiltBinaryPath: fixture.tiltBinary,
+        tiltPort: fixture.port,
+        tiltHost: fixture.host,
+      },
+    );
+
+    const output = JSON.parse(result.content[0].text);
+    expect(output.resourceStatuses).toHaveLength(2);
+    expect(output.resourceStatuses[0]).toMatchObject({
+      name: 'web-app',
+      status: 'ok',
+      ready: true,
+    });
+    expect(output.resourceStatuses[1]).toMatchObject({
+      name: 'api',
+      status: 'pending',
+      ready: false,
+    });
+  });
+
   it('waits for all resources when none specified', async () => {
     const fixture = await createTiltCliFixture({
       behavior: 'healthy',
@@ -53,11 +105,12 @@ describe('tilt_wait tool', () => {
     fixtures.push(fixture);
 
     const result = await tiltWait.handler(
+      {},
       {
+        tiltBinaryPath: fixture.tiltBinary,
         tiltPort: fixture.port,
         tiltHost: fixture.host,
       },
-      { tiltBinaryPath: fixture.tiltBinary },
     );
 
     expect(result.content).toHaveLength(1);
@@ -73,10 +126,12 @@ describe('tilt_wait tool', () => {
       tiltWait.handler(
         {
           resources: ['web-app'],
+        },
+        {
+          tiltBinaryPath: fixture.tiltBinary,
           tiltPort: fixture.port,
           tiltHost: fixture.host,
         },
-        { tiltBinaryPath: fixture.tiltBinary },
       ),
     ).rejects.toThrow(/No active Tilt session|connection refused/i);
   });

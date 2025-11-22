@@ -8,7 +8,6 @@
 export { tiltArgs } from './args.js';
 export { tiltDescribeResource } from './describe.js';
 export { tiltDisable } from './disable.js';
-export { tiltDiscover } from './discover.js';
 export { tiltEnable } from './enable.js';
 export { tiltLogs } from './logs.js';
 export { tiltGetResources } from './resources.js';

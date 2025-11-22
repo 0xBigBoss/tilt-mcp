@@ -105,7 +105,7 @@ describe('tilt_args tool', () => {
           tiltHost: fixture.host,
         },
       ),
-    ).rejects.toThrow(/args.*or.*clear|clear.*or.*args/i);
+    ).rejects.toThrow(/mode="get"|interactive editor|tilt args without arguments/i);
   });
 
   it('throws error when args is empty array', async () => {
@@ -126,7 +126,7 @@ describe('tilt_args tool', () => {
           tiltHost: fixture.host,
         },
       ),
-    ).rejects.toThrow(/args.*or.*clear|clear.*or.*args/i);
+    ).rejects.toThrow(/mode="set"|tilt args without arguments|interactive editor/i);
   });
 
   it('uses default port and host when not provided', async () => {

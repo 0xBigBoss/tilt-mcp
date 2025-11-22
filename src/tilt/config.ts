@@ -1,78 +1,84 @@
 /**
  * Tilt Connection Configuration
  *
- * Provides default values for Tilt connection parameters.
- * Reads from environment variables with fallback to built-in defaults.
- *
- * Priority: explicit args > extra config > env vars > built-in defaults
+ * Resolves Tilt connection settings from explicit overrides or environment variables.
+ * Required: TILT_PORT (via .mcp.json env or shell export)
+ * Optional: TILT_HOST (defaults to 'localhost' if not set)
  */
 
-// Built-in defaults
-const DEFAULT_PORT = 10350;
-const DEFAULT_HOST = 'localhost';
-const DEFAULT_PORT_RANGE_SIZE = 4;
+const MIN_PORT = 1;
+const MAX_PORT = 65535;
 
-/**
- * Get default Tilt port from environment or built-in default.
- * Validates that TILT_PORT is a valid port number (1-65535).
- *
- * @returns Default port number
- */
-export function getDefaultTiltPort(): number {
-  const envPort = process.env.TILT_PORT;
-
-  if (!envPort) {
-    return DEFAULT_PORT;
+function validatePort(port: number, source: string): number {
+  if (!Number.isInteger(port) || port < MIN_PORT || port > MAX_PORT) {
+    throw new Error(
+      `Invalid Tilt port from ${source}: expected integer between ${MIN_PORT} and ${MAX_PORT}`,
+    );
   }
-
-  // Strict numeric validation - reject if not all digits (with optional leading/trailing whitespace)
-  const trimmed = envPort.trim();
-  if (!/^\d+$/.test(trimmed)) {
-    return DEFAULT_PORT;
-  }
-
-  const parsed = Number.parseInt(trimmed, 10);
-
-  // Validate: must be an integer between 1 and 65535
-  if (
-    Number.isNaN(parsed) ||
-    !Number.isInteger(parsed) ||
-    parsed < 1 ||
-    parsed > 65535
-  ) {
-    return DEFAULT_PORT;
-  }
-
-  return parsed;
+  return port;
 }
 
-/**
- * Get default Tilt host from environment or built-in default.
- *
- * @returns Default host string
- */
-export function getDefaultTiltHost(): string {
-  const envHost = process.env.TILT_HOST;
-
-  if (!envHost) {
-    return DEFAULT_HOST;
+function readEnvVar(key: string): string {
+  const value = process.env[key];
+  if (value === undefined) {
+    throw new Error(
+      `${key} is not set. Configure it in your .mcp.json server env or export it in the environment.`,
+    );
   }
-
-  return envHost;
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    throw new Error(
+      `${key} is empty. Provide a non-empty value via .mcp.json server env or the environment.`,
+    );
+  }
+  return trimmed;
 }
 
-/**
- * Get default port range for discovery scanning.
- * Range starts from the default port and extends by the specified size.
- * End port is clamped to 65535 to prevent invalid port numbers.
- *
- * @param rangeSize - Number of ports to scan after the starting port (default: 4)
- * @returns Tuple of [startPort, endPort]
- */
-export function getDefaultPortRange(
-  rangeSize: number = DEFAULT_PORT_RANGE_SIZE,
-): [number, number] {
-  const startPort = getDefaultTiltPort();
-  const endPort = Math.min(startPort + rangeSize, 65535);
-  return [startPort, endPort];
+function parsePortFromEnv(): number {
+  const raw = readEnvVar('TILT_PORT');
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(
+      `TILT_PORT must be an integer between ${MIN_PORT} and ${MAX_PORT}`,
+    );
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return validatePort(parsed, 'TILT_PORT');
+}
+
+function parseHostFromEnv(): string {
+  const value = process.env['TILT_HOST'];
+  if (value === undefined || value.trim() === '') {
+    return 'localhost';
+  }
+  return value.trim();
+}
+
+export function requireTiltPort(portOverride?: number): number {
+  if (portOverride !== undefined) {
+    return validatePort(portOverride, 'override');
+  }
+  return parsePortFromEnv();
+}
+
+export function requireTiltHost(hostOverride?: string): string {
+  if (hostOverride !== undefined) {
+    const trimmed = hostOverride.trim();
+    if (trimmed === '') {
+      throw new Error(
+        'Override for Tilt host is empty. Set TILT_HOST with a non-empty value via .mcp.json environment.',
+      );
+    }
+    return trimmed;
+  }
+  return parseHostFromEnv();
+}
+
+export function resolveTiltTarget(overrides?: {
+  port?: number;
+  host?: string;
+}): { port: number; host: string } {
+  return {
+    port: requireTiltPort(overrides?.port),
+    host: requireTiltHost(overrides?.host),
+  };
 }

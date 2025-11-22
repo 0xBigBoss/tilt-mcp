@@ -6,24 +6,22 @@
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { TiltCliClient } from '../tilt/cli-client.js';
-import { getDefaultTiltHost, getDefaultTiltPort } from '../tilt/config.js';
+import { resolveTiltTarget } from '../tilt/config.js';
 import { TiltConnection } from '../tilt/connection.js';
+import { cleanResource } from '../tilt/transformers.js';
+import type { UIResource } from '../tilt/types.js';
 import { TiltDisableInput, type TiltToolExtra } from './schemas.js';
 
 export const tiltDisable = tool(
   'tilt_disable',
-  'Disable a Tilt resource',
+  'Disable a Tilt resource. Set verbose=true to include the updated resource state.',
   TiltDisableInput.shape,
   async (args, _extra) => {
     const extra = (_extra ?? {}) as TiltToolExtra;
-    const port =
-      (args as { tiltPort?: number }).tiltPort ??
-      extra.tiltPort ??
-      getDefaultTiltPort();
-    const host =
-      (args as { tiltHost?: string }).tiltHost ??
-      extra.tiltHost ??
-      getDefaultTiltHost();
+    const { port, host } = resolveTiltTarget({
+      port: extra.tiltPort,
+      host: extra.tiltHost,
+    });
     const binaryPath = extra.tiltBinaryPath;
 
     // Check if session is active first
@@ -44,10 +42,17 @@ export const tiltDisable = tool(
 
     await client.disable(args.resourceName);
 
+    let resourceState: Record<string, unknown> | undefined;
+    if (args.verbose) {
+      const rawResource = await client.describeResource(args.resourceName);
+      resourceState = cleanResource(rawResource as unknown as UIResource);
+    }
+
     const result = {
       success: true,
       resourceName: args.resourceName,
       message: `Resource '${args.resourceName}' disabled successfully`,
+      ...(resourceState ? { resourceState } : {}),
       connectionInfo: {
         port,
         host,

@@ -28,10 +28,9 @@ describe('TiltWebSocketClient', () => {
   const originalHost = process.env.TILT_HOST;
 
   beforeEach(async () => {
-    // Clear env vars before each test for predictable defaults
-    delete process.env.TILT_PORT;
-    delete process.env.TILT_HOST;
     fixture = await createWsServerFixture();
+    process.env.TILT_PORT = fixture.port.toString();
+    process.env.TILT_HOST = '127.0.0.1';
   });
 
   afterEach(async () => {
@@ -344,18 +343,18 @@ describe('TiltWebSocketClient', () => {
       expect(config.host).toBe('custom.host');
     });
 
-    test('uses default port 10350', () => {
+    test('uses env port when not provided', () => {
       client = new TiltWebSocketClient();
 
       const config = client.getConfig();
-      expect(config.port).toBe(10350);
+      expect(config.port).toBe(fixture.port);
     });
 
-    test('uses default host localhost', () => {
+    test('uses env host when not provided', () => {
       client = new TiltWebSocketClient();
 
       const config = client.getConfig();
-      expect(config.host).toBe('localhost');
+      expect(config.host).toBe('127.0.0.1');
     });
   });
 

@@ -2,12 +2,10 @@ import { describe, expect, it } from 'bun:test';
 import {
   FilterSchema,
   LabelSchema,
-  PortRangeSchema,
   ResourceNameSchema,
   TiltArgsInput,
   TiltDescribeResourceInput,
   TiltDisableInput,
-  TiltDiscoverInput,
   TiltDumpInput,
   TiltEnableInput,
   TiltfileArgsSchema,
@@ -130,39 +128,6 @@ describe('LabelSchema', () => {
   });
 });
 
-describe('PortRangeSchema', () => {
-  it('accepts valid port ranges', () => {
-    expect(() => PortRangeSchema.parse([10350, 10354])).not.toThrow();
-    expect(() => PortRangeSchema.parse([1, 65535])).not.toThrow();
-    expect(() => PortRangeSchema.parse([8080, 8080])).not.toThrow(); // Same port
-  });
-
-  it('rejects start port > end port', () => {
-    expect(() => PortRangeSchema.parse([10354, 10350])).toThrow(
-      /Start port must be <= end port/,
-    );
-    expect(() => PortRangeSchema.parse([8080, 8079])).toThrow(
-      /Start port must be <= end port/,
-    );
-  });
-
-  it('rejects invalid port numbers in range', () => {
-    expect(() => PortRangeSchema.parse([0, 100])).toThrow();
-    expect(() => PortRangeSchema.parse([100, 65536])).toThrow();
-    expect(() => PortRangeSchema.parse([-1, 100])).toThrow();
-  });
-
-  it('rejects non-integer ports', () => {
-    expect(() => PortRangeSchema.parse([80.5, 90])).toThrow();
-    expect(() => PortRangeSchema.parse([80, 90.5])).toThrow();
-  });
-
-  it('rejects wrong tuple size', () => {
-    expect(() => PortRangeSchema.parse([8080])).toThrow();
-    expect(() => PortRangeSchema.parse([8080, 8090, 8100])).toThrow();
-  });
-});
-
 describe('FilterSchema', () => {
   it('accepts safe filter strings', () => {
     expect(() => FilterSchema.parse('app=frontend')).not.toThrow();
@@ -271,32 +236,6 @@ describe('TiltfileArgsSchema', () => {
     expect(() => TiltfileArgsSchema.parse(['arg with spaces'])).toThrow(
       /Invalid arg format/,
     );
-  });
-});
-
-describe('TiltDiscoverInput Schema', () => {
-  it('accepts base input with portRange', () => {
-    const input = { portRange: [10350, 10354] as [number, number] };
-    expect(() => TiltDiscoverInput.parse(input)).not.toThrow();
-  });
-
-  it('portRange is undefined when not provided (default applied in tool handler)', () => {
-    // Default is applied in the tool handler using getDefaultPortRange()
-    // which reads from TILT_PORT env var, so schema doesn't have a static default
-    const result = TiltDiscoverInput.parse({});
-    expect(result.portRange).toBeUndefined();
-  });
-
-  it('accepts custom portRange', () => {
-    const input = { portRange: [8000, 9000] as [number, number] };
-    const result = TiltDiscoverInput.parse(input);
-    expect(result.portRange).toEqual([8000, 9000]);
-  });
-
-  it('validates portRange', () => {
-    expect(() =>
-      TiltDiscoverInput.parse({ portRange: [9000, 8000] }),
-    ).toThrow();
   });
 });
 
@@ -422,6 +361,12 @@ describe('TiltLogsInput Schema', () => {
       tailLines: 100,
       level: 'error' as const,
       source: 'runtime' as const,
+      search: {
+        query: 'ERROR',
+        mode: 'regex' as const,
+        caseSensitive: false,
+        flags: 'im',
+      },
     };
     expect(() => TiltLogsInput.parse(input)).not.toThrow();
   });
@@ -489,6 +434,31 @@ describe('TiltLogsInput Schema', () => {
     ).not.toThrow();
     expect(() =>
       TiltLogsInput.parse({ resourceName: 'svc', source: 'invalid' }),
+    ).toThrow();
+  });
+
+  it('accepts substring search and defaults mode/case', () => {
+    const result = TiltLogsInput.parse({
+      resourceName: 'svc',
+      search: { query: 'ERROR' },
+    });
+    expect(result.search?.mode).toBe('substring');
+    expect(result.search?.caseSensitive).toBe(true);
+  });
+
+  it('validates search flags', () => {
+    expect(() =>
+      TiltLogsInput.parse({
+        resourceName: 'svc',
+        search: { query: '.*', mode: 'regex', flags: 'im' },
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      TiltLogsInput.parse({
+        resourceName: 'svc',
+        search: { query: '.*', mode: 'regex', flags: 'gi' },
+      }),
     ).toThrow();
   });
 });

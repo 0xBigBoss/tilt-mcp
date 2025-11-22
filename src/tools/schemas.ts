@@ -52,17 +52,6 @@ export const LabelSchema = z
   .regex(/^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$/, 'Invalid label format');
 
 /**
- * Port range schema - tuple of [start, end] ports
- * Start must be <= end
- */
-export const PortRangeSchema = z
-  .tuple([
-    z.number().int().min(1).max(65535),
-    z.number().int().min(1).max(65535),
-  ])
-  .refine(([start, end]) => start <= end, 'Start port must be <= end port');
-
-/**
  * Filter schema - safe characters only
  * Prevents command injection via filter strings
  * Allows alphanumeric, dots, underscores, equals, commas, spaces, hyphens
@@ -85,12 +74,42 @@ export const TiltfileArgsSchema = z.array(
 );
 
 /**
+ * Client-side log search filtering
+ * Supports substring or regex matching
+ */
+export const LogSearchSchema = z.object({
+  query: z
+    .string()
+    .min(1)
+    .max(512)
+    .describe('Text to search for in log lines. Required.'),
+  mode: z
+    .enum(['substring', 'regex'])
+    .optional()
+    .default('substring')
+    .describe('Search mode: substring (default) or regex.'),
+  caseSensitive: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Whether search is case-sensitive. Default true.'),
+  flags: z
+    .string()
+    .regex(
+      /^[imsuy]*$/,
+      'Invalid regex flags; allowed flags: i, m, s, u, y (global flag is not supported).',
+    )
+    .optional()
+    .describe(
+      'Regex flags to apply when mode="regex". Global flag is disallowed to avoid stateful matching.',
+    ),
+});
+
+export type LogSearch = z.infer<typeof LogSearchSchema>;
+
+/**
  * Tool-specific schemas
  */
-
-export const TiltDiscoverInput = TiltBaseInput.extend({
-  portRange: PortRangeSchema.optional(),
-});
 
 export const TiltStatusInput = TiltBaseInput;
 

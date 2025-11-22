@@ -152,24 +152,15 @@ describe('TiltConnection', () => {
       });
     });
 
-    it('uses default values when not specified (no env vars)', () => {
-      // Save and clear env vars to test built-in defaults
+    it('requires env configuration when host/port are not provided', () => {
       const savedPort = process.env.TILT_PORT;
       const savedHost = process.env.TILT_HOST;
       delete process.env.TILT_PORT;
       delete process.env.TILT_HOST;
 
       try {
-        const connection = new TiltConnection();
-        const info = connection.getConnectionInfo();
-
-        expect(info.port).toBe(10350);
-        expect(info.host).toBe('localhost');
-        expect(info.timeout).toBe(2000);
-        expect(info.binaryPath).toBe('tilt');
-        expect(info.cacheIntervalMs).toBe(10000);
+        expect(() => new TiltConnection()).toThrow(/TILT_PORT is not set/);
       } finally {
-        // Restore env vars
         if (savedPort !== undefined) process.env.TILT_PORT = savedPort;
         if (savedHost !== undefined) process.env.TILT_HOST = savedHost;
       }

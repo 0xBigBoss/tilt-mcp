@@ -7,6 +7,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { dirname } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
@@ -22,7 +23,11 @@ describe('MCP Server Integration', () => {
     transport = new StdioClientTransport({
       command: 'bun',
       args: ['src/server.ts'],
-      cwd: '/Users/allen/0xbigboss/tilt-mcp',
+      cwd: process.cwd(),
+      env: {
+        TILT_PORT: '10350',
+        TILT_HOST: 'localhost',
+      },
     });
 
     client = new Client({
@@ -58,7 +63,6 @@ describe('MCP Server Integration', () => {
 
       // Verify expected tools are present
       const toolNames = result.tools.map((t) => t.name);
-      expect(toolNames).toContain('tilt_discover');
       expect(toolNames).toContain('tilt_status');
       expect(toolNames).toContain('tilt_get_resources');
       expect(toolNames).toContain('tilt_describe_resource');
@@ -90,17 +94,6 @@ describe('MCP Server Integration', () => {
       ).rejects.toThrow();
     });
 
-    it('rejects invalid port range for tilt_discover', async () => {
-      await expect(
-        client.callTool({
-          name: 'tilt_discover',
-          arguments: {
-            portRange: [100, 50], // Invalid: start > end
-          },
-        }),
-      ).rejects.toThrow();
-    });
-
     it('rejects invalid resource name format', async () => {
       await expect(
         client.callTool({
@@ -113,45 +106,6 @@ describe('MCP Server Integration', () => {
     });
   });
 
-  describe('Tool Invocation - tilt_discover', () => {
-    it('returns discovery results in proper MCP format', async () => {
-      const result = await client.callTool({
-        name: 'tilt_discover',
-        arguments: {
-          portRange: [65000, 65001], // Unlikely to have anything running
-        },
-      });
-
-      expect(result).toBeDefined();
-      expect(result.content).toBeDefined();
-      expect(Array.isArray(result.content)).toBe(true);
-      expect(result.content.length).toBeGreaterThan(0);
-
-      const textContent = result.content[0];
-      expect(textContent.type).toBe('text');
-      expect(typeof (textContent as { text: string }).text).toBe('string');
-
-      // Should be valid JSON with consistent DiscoveryResult shape
-      const parsed = JSON.parse((textContent as { text: string }).text);
-      expect(parsed.instances).toBeDefined();
-      expect(Array.isArray(parsed.instances)).toBe(true);
-    });
-
-    it('returns empty array when no instances found', async () => {
-      const result = await client.callTool({
-        name: 'tilt_discover',
-        arguments: {
-          portRange: [65000, 65001], // Very unlikely to have anything
-        },
-      });
-
-      const textContent = result.content[0] as { text: string };
-      const parsed = JSON.parse(textContent.text);
-      expect(parsed.instances).toEqual([]);
-      expect(parsed.warning).toBeUndefined();
-      expect(parsed.message).toBeUndefined();
-    });
-  });
 });
 
 describe('MCP Server with Tilt Fixture', () => {
@@ -172,12 +126,18 @@ describe('MCP Server with Tilt Fixture', () => {
         ],
       }),
     });
+    const fixtureDir = dirname(fixture.tiltBinary);
 
     // Create transport with environment variable for tilt binary path
     transport = new StdioClientTransport({
       command: 'bun',
       args: ['src/server.ts'],
-      cwd: '/Users/allen/0xbigboss/tilt-mcp',
+      cwd: process.cwd(),
+      env: {
+        TILT_PORT: fixture.port.toString(),
+        TILT_HOST: fixture.host,
+        PATH: `${fixtureDir}:${process.env.PATH ?? ''}`,
+      },
     });
 
     client = new Client({
@@ -194,65 +154,58 @@ describe('MCP Server with Tilt Fixture', () => {
   });
 
   describe('Tool Invocation - tilt_status', () => {
-    it('throws MCP error when no tilt instance is running', async () => {
-      // The server uses the real tilt binary (not fixture), so this will fail
-      // because no Tilt instance is running on the fixture port
-      // This tests that errors are properly propagated through MCP protocol
-      await expect(
-        client.callTool({
-          name: 'tilt_status',
-          arguments: {
-            tiltPort: fixture.port,
-            tiltHost: fixture.host,
-          },
-        }),
-      ).rejects.toThrow(/No tilt apiserver found/);
+    it('returns Tilt status using configured environment', async () => {
+      const result = await client.callTool({
+        name: 'tilt_status',
+        arguments: {},
+      });
+
+      const textContent = result.content[0] as { text: string };
+      const parsed = JSON.parse(textContent.text);
+
+      expect(parsed.sessionActive).toBe(true);
+      expect(parsed.connectionInfo).toEqual({
+        port: fixture.port,
+        host: fixture.host,
+      });
     });
   });
 
   describe('Tool Invocation - tilt_get_resources', () => {
-    it('throws MCP error when no tilt instance is running', async () => {
-      // Similar to status, this will fail without a running Tilt instance
-      await expect(
-        client.callTool({
-          name: 'tilt_get_resources',
-          arguments: {
-            tiltPort: fixture.port,
-            tiltHost: fixture.host,
-          },
-        }),
-      ).rejects.toThrow(/No tilt apiserver found/);
+    it('returns resources from the fixture', async () => {
+      const result = await client.callTool({
+        name: 'tilt_get_resources',
+        arguments: {},
+      });
+
+      const parsed = JSON.parse((result.content[0] as { text: string }).text);
+      expect(parsed.resources).toHaveLength(1);
+      expect(parsed.resources[0].name).toBe('test-resource');
     });
 
-    it('validates filter parameter format', async () => {
-      // Filter with valid format should be accepted by schema
-      // (will still fail due to no Tilt, but schema validation passes)
-      await expect(
-        client.callTool({
-          name: 'tilt_get_resources',
-          arguments: {
-            tiltPort: fixture.port,
-            tiltHost: fixture.host,
-            filter: 'test',
-          },
-        }),
-      ).rejects.toThrow(/No tilt apiserver found/);
+    it('accepts filter parameter without schema errors', async () => {
+      const result = await client.callTool({
+        name: 'tilt_get_resources',
+        arguments: {
+          filter: 'test',
+        },
+      });
+
+      const parsed = JSON.parse((result.content[0] as { text: string }).text);
+      expect(parsed.resources.length).toBeGreaterThanOrEqual(0);
     });
   });
 
   describe('Error Propagation', () => {
     it('propagates connection errors through MCP protocol', async () => {
-      // Try to connect to a port that doesn't have tilt running
-      // The server should throw an MCP error with the connection failure
+      fixture.setBehavior('refused');
+
       await expect(
         client.callTool({
           name: 'tilt_status',
-          arguments: {
-            tiltPort: 65432,
-            tiltHost: '127.0.0.1',
-          },
+          arguments: {},
         }),
-      ).rejects.toThrow(/No tilt apiserver found/);
+      ).rejects.toThrow(/connection refused|No active Tilt session/i);
     });
   });
 });
@@ -265,7 +218,11 @@ describe('MCP Server Error Handling', () => {
     transport = new StdioClientTransport({
       command: 'bun',
       args: ['src/server.ts'],
-      cwd: '/Users/allen/0xbigboss/tilt-mcp',
+      cwd: process.cwd(),
+      env: {
+        TILT_PORT: '10350',
+        TILT_HOST: 'localhost',
+      },
     });
 
     client = new Client({
@@ -294,9 +251,9 @@ describe('MCP Server Error Handling', () => {
   it('handles invalid parameter types', async () => {
     await expect(
       client.callTool({
-        name: 'tilt_discover',
+        name: 'tilt_logs',
         arguments: {
-          portRange: 'not-an-array', // Should be [number, number]
+          resourceName: 123, // Should be string
         },
       }),
     ).rejects.toThrow();

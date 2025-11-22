@@ -85,7 +85,7 @@ export class TiltNotRunningError extends TiltError {
 export class TiltResourceNotFoundError extends TiltError {
   constructor(resourceName: string) {
     super(
-      `Resource "${resourceName}" not found. Check the name spelling or list available resources.`,
+      `Resource "${resourceName}" not found. Use tilt_get_resources to list available resources or verify the name.`,
       'TILT_RESOURCE_NOT_FOUND',
       { resourceName },
     );
