@@ -82,7 +82,6 @@ local_resource(
     trigger_mode = TRIGGER_MODE_AUTO,
     deps = [
         "package.json",
-        "package-lock.json",
     ],
 )
 
@@ -114,4 +113,3 @@ Quick commands:
   - Click resource name to view logs
   - Use trigger button for manual resources
 """)
-

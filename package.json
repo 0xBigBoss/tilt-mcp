@@ -4,12 +4,21 @@
   "description": "MCP server for Tilt CLI integration",
   "type": "module",
   "main": "dist/server.js",
+  "bin": {
+    "tilt-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
   "scripts": {
     "build": "bun build src/server.ts --outdir dist --target bun",
+    "build:standalone": "bun build src/server.ts --compile --outfile dist/tilt-mcp",
     "dev": "bun --watch src/server.ts",
     "start": "bun dist/server.js",
     "test": "bun test",
@@ -17,7 +26,8 @@
     "test:integration": "bun test tests/integration",
     "typecheck": "tsgo --noEmit",
     "lint": "biome check src tests",
-    "lint:fix": "biome check --write src tests"
+    "lint:fix": "biome check --write src tests",
+    "prepublishOnly": "bun run build && chmod +x dist/server.js"
   },
   "keywords": [
     "mcp",
@@ -25,7 +35,7 @@
     "kubernetes",
     "development"
   ],
-  "author": "",
+  "author": "0xbigboss",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.47",

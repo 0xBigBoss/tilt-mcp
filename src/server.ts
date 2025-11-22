@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 /**
  * Tilt MCP Server
  *
@@ -101,11 +102,6 @@ export async function handleCallTool(request: {
   const { name, arguments: args } = request.params;
 
   switch (name) {
-    case 'tilt_discover': {
-      const validatedArgs = TiltDiscoverInput.parse(args);
-      return await tiltDiscover.handler(validatedArgs, {});
-    }
-
     case 'tilt_status': {
       const validatedArgs = TiltStatusInput.parse(args);
       return await tiltStatus.handler(validatedArgs, {});
@@ -181,9 +177,89 @@ export function createServer(): Server {
 }
 
 /**
+ * Display help information
+ */
+function showHelp(): void {
+  const help = `
+Tilt MCP Server v0.1.0
+
+USAGE:
+  tilt-mcp [OPTIONS]
+
+DESCRIPTION:
+  MCP server for Tilt CLI integration, enabling AI assistants to interact
+  with Tilt development workflows via the Model Context Protocol.
+
+OPTIONS:
+  -h, --help     Show this help message and exit
+  -v, --version  Show version information and exit
+
+AVAILABLE TOOLS:
+  tilt_status             Get overall Tilt status and resource summary
+  tilt_get_resources      List all resources managed by Tilt
+  tilt_describe_resource  Get detailed information about a specific resource
+  tilt_logs              Read logs from a specific resource
+  tilt_trigger           Manually trigger a resource update
+  tilt_enable            Enable a disabled resource
+  tilt_disable           Disable a resource
+  tilt_wait              Wait for resources to reach ready state
+  tilt_args              Set or clear Tiltfile arguments
+
+ENVIRONMENT VARIABLES:
+  TILT_HOST    Tilt server hostname (default: localhost)
+  TILT_PORT    Tilt server port (required, typically 10350)
+
+EXAMPLES:
+  # Run as MCP server (stdio transport)
+  tilt-mcp
+
+  # Configure in Claude Desktop (.mcp.json)
+  {
+    "mcpServers": {
+      "tilt": {
+        "command": "/usr/local/bin/tilt-mcp",
+        "env": {
+          "TILT_PORT": "10350"
+        }
+      }
+    }
+  }
+
+MORE INFORMATION:
+  https://github.com/0xbigboss/tilt-mcp
+  https://docs.tilt.dev
+`;
+
+  console.log(help.trim());
+}
+
+/**
+ * Display version information
+ */
+function showVersion(): void {
+  console.log('Tilt MCP Server v0.1.0');
+}
+
+/**
  * Main entry point - starts the server with stdio transport
  */
 export async function main(): Promise<void> {
+  // Parse command line arguments
+  const args = Bun.argv.slice(2);
+
+  // Handle help flag
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+    process.exit(0);
+  }
+
+  // Handle version flag
+  if (args.includes('--version') || args.includes('-v')) {
+    showVersion();
+    process.exit(0);
+  }
+
+  // Start MCP server
   const server = createServer();
   const transport = new StdioServerTransport();
 
