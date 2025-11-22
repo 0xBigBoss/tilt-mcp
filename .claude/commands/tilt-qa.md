@@ -8,12 +8,7 @@ Execute the following QA workflow systematically, documenting results at each st
 
 ### Phase 1: Discovery and Initial Status
 
-1. **Discover Tilt Instances**
-   - Use `tilt_discover` to find running Tilt instances
-   - Document: port range scanned, instances found, connection details
-   - ❌ **Bug check**: Does discovery fail? Timeout? Incorrect ports?
-
-2. **Check Overall Status**
+1. **Check Overall Status**
    - Use `tilt_status` to get system-wide status
    - Document: resources count, overall state, any warnings
    - ❌ **Bug check**: Missing data? Incorrect formatting? Errors?
@@ -38,13 +33,16 @@ Execute the following QA workflow systematically, documenting results at each st
 ### Phase 3: Logs and Monitoring
 
 5. **Read Logs**
-   - Use `tilt_logs` with various options:
+   - Use `tilt_logs` (plain-text output) with various options:
      - Default tail (100 lines)
      - Different tail line counts (50, 200)
      - Filter by source (build, runtime, all)
-     - Filter by level (warn, error)
-   - Document: log output, filtering effectiveness, performance
-   - ❌ **Bug check**: Missing logs? Incorrect filtering? Timeout issues?
+     - Filter by level (warn, error) — note: filters Tilt system messages only
+     - Client-side search:
+       - Substring match (case-sensitive and case-insensitive)
+       - Regex with flags (e.g., `im`), ensure invalid regex throws clear error
+   - Document: log output, filtering effectiveness, search behavior, performance
+   - ❌ **Bug check**: Missing logs? Incorrect filtering? Search not applied? Timeout issues? Errors not descriptive for bad regex?
 
 ### Phase 4: Resource Control
 
@@ -81,6 +79,7 @@ Execute the following QA workflow systematically, documenting results at each st
 10. **Test Error Conditions**
     - Call `tilt_describe_resource` with invalid resource name
     - Call `tilt_logs` with invalid resource name
+    - Call `tilt_logs` with invalid search regex and confirm explicit failure
     - Test with Tilt not running (if possible to test safely)
     - Document: error messages, error handling quality
     - ❌ **Bug check**: Poor error messages? Crashes? Undefined behavior?
